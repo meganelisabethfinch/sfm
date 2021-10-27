@@ -5,8 +5,10 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/features2d.hpp>
 
+using namespace cv;
+
 int main(int argc, char** argv) {
-    #pragma region Parse_Command_Line
+    #pragma region Parse Inputs
     std::string input_image_dir;
     std::string output_dir;
     int opt;
@@ -27,36 +29,38 @@ int main(int argc, char** argv) {
         }
     }
 
-    std::vector<cv::String> fn;
-    cv::glob(input_image_dir + "/*.png", fn, false);
+    std::vector<String> fn;
+    glob(input_image_dir + "/*.png", fn, false);
     // TODO: fix format for *.png and *.jpg
     // TODO: error handling if glob fails/image directory is invalid
 
     std::cout << "Opening images..." << std::endl;
-    std::vector<cv::Mat> input_images;
+    std::vector<Mat> input_images;
     for (size_t i = 0; i < fn.size(); i++) {
-        input_images.push_back(cv::imread(fn[i], cv::IMREAD_COLOR));
+        input_images.push_back(imread(fn[i], IMREAD_COLOR));
     }
-    #pragma endregion Parse_Command_Line
+    #pragma endregion Parse Inputs
 
-    #pragma region Feature_Detection
+    #pragma region Feature Detection
     std::cout << "Finding features..." << std::endl;
 
-    cv::Ptr<cv::SIFT> detector = cv::SIFT::create();
-    std::vector<std::vector<cv::KeyPoint>> all_keypoints;
-    std::vector<cv::Mat> all_descriptors;
+    Ptr<SIFT> detector = SIFT::create();
+    std::vector<std::vector<KeyPoint>> all_keypoints;
+    std::vector<Mat> all_descriptors;
     for (size_t i = 0; i < input_images.size(); i++) {
-        std::vector<cv::KeyPoint> keypoints;
-        cv::Mat descriptors;
+        std::vector<KeyPoint> keypoints;
+        Mat descriptors;
 
-        detector->detectAndCompute(input_images[i], cv::noArray(), keypoints, descriptors);
+        detector->detectAndCompute(input_images[i], noArray(), keypoints, descriptors);
         all_keypoints.push_back(keypoints);
         all_descriptors.push_back(descriptors);
     }
 
-    #pragma endregion Feature_Detection
+    #pragma endregion Feature Detection
 
-    // 2. feature matching
+    #pragma region Feature Matching
+
+    #pragma endregion Feature Matching
 
     // 3. geometric verification
 
