@@ -1,4 +1,5 @@
 #include "image.hpp"
+#include "feature_matcher.hpp"
 
 #include <string>
 #include <unistd.h>
@@ -6,6 +7,7 @@
 
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/features2d.hpp>
+#include <opencv2/highgui.hpp>
 
 using namespace cv;
 
@@ -54,19 +56,22 @@ int main(int argc, char** argv) {
         Mat descriptors;
 
         detector->detectAndCompute(input_images[i].img, noArray(), input_images[i].keypoints, input_images[i].descriptors);
-        // all_keypoints[i] = keypoints;
-        // all_descriptors[i] = descriptors;
     }
 
+    // Output example keypoints for debug
     Mat out;
-    drawKeypoints(input_images[0].img, input_images[0].keypoints, out, flags = cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    drawKeypoints(input_images[0].img, input_images[0].keypoints, out, Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    imshow("Keypoints", out);
+    cv::waitKey(0);
+    cv::destroyWindow("Keypoints");
 
     #pragma endregion Feature Detection
 
     #pragma region Feature Matching
     std::cout << "Finding matches..." << std::endl;
 
-    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED);
+    FeatureMatcher matcher(0.6);
+    matcher.match(input_images);
     #pragma endregion Feature Matching
 
     // 3. geometric verification
