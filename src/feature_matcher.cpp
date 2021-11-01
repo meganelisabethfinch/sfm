@@ -42,18 +42,14 @@ int FeatureMatcher::match(std::vector<Image> images) {
 
                 // std::cout << goodMatches.size() << std::endl;
                 // std::cout << mask.size() << std::endl;
-                
-                if (i == 0 && j == 1) {
-                    std::cout << goodMatches.size() << std::endl;
-                    std::cout << mask.size() << std::endl;
-                    for (int k = 0; k < goodMatches.size(); k++) {
-                        std::cout << mask[k] << std::endl;
-                    }
-                }
+                // TODO: Why is mask.size() != goodMatches.size() sometimes?
             
                 for (int matchIdx = 0; matchIdx < goodMatches.size(); matchIdx++) {
-                    images[i].keypoint_matches[goodMatches[matchIdx].queryIdx][j] = goodMatches[matchIdx].trainIdx;
-                    images[i].keypoint_matches[goodMatches[matchIdx].trainIdx][i] = goodMatches[matchIdx].queryIdx;
+                    if (mask[i]) {
+                        // This is a good match
+                        images[i].keypoint_matches[goodMatches[matchIdx].queryIdx][j] = goodMatches[matchIdx].trainIdx;
+                        images[i].keypoint_matches[goodMatches[matchIdx].trainIdx][i] = goodMatches[matchIdx].queryIdx;
+                    }
                 }
             }
 

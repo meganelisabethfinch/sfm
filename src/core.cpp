@@ -67,14 +67,12 @@ int main(int argc, char** argv) {
 
     #pragma endregion Feature Detection
 
-    #pragma region Feature Matching
+    #pragma region Feature Matching and Geometric Verification
     std::cout << "Finding matches..." << std::endl;
 
     FeatureMatcher matcher(0.6);
     matcher.match(input_images);
     #pragma endregion Feature Matching
-
-    // 3. geometric verification
 
     // 4. image registration
 
