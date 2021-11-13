@@ -4,12 +4,15 @@
 #include <string>
 #include <unistd.h>
 #include <iostream>
+#include <filesystem>
 
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/sfm/triangulation.hpp>
 
 using namespace cv;
+namespace fs = std::filesystem;
 
 int main(int argc, char** argv) {
     #pragma region Parse Inputs
@@ -41,6 +44,7 @@ int main(int argc, char** argv) {
     std::cout << "Opening images..." << std::endl;
     std::vector<Image> input_images(fn.size());
     for (size_t i = 0; i < fn.size(); i++) {
+        input_images[i].name = fs::path(fn[i]).filename();
         input_images[i].img = imread(fn[i], IMREAD_COLOR);
     }
     #pragma endregion Parse Inputs
@@ -59,11 +63,13 @@ int main(int argc, char** argv) {
     }
 
     // Output example keypoints for debug
+    /*
     Mat out;
     drawKeypoints(input_images[0].img, input_images[0].keypoints, out, Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
     imshow("Keypoints", out);
     cv::waitKey(0);
     cv::destroyWindow("Keypoints");
+    */
 
     #pragma endregion Feature Detection
 
@@ -72,11 +78,14 @@ int main(int argc, char** argv) {
 
     FeatureMatcher matcher(0.6);
     matcher.match(input_images);
+
+    matcher.getSceneGraph(input_images);
     #pragma endregion Feature Matching
 
     // 4. image registration
 
     // 5. triangulation
+    // triangulatePoints()
 
     // 6. bundle adjustment
 

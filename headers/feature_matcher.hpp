@@ -15,5 +15,7 @@ class FeatureMatcher {
         int detect(std::vector<Image> images);
         
         int match(std::vector<Image> images);
+
+        int getSceneGraph(std::vector<Image> images);
 };
 #endif

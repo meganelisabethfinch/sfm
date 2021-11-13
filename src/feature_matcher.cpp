@@ -5,6 +5,7 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/highgui.hpp>
 
+#include <fstream>
 #include <iostream>
 
 using namespace cv;
@@ -36,34 +37,76 @@ int FeatureMatcher::match(std::vector<Image> images) {
             }
             
             // Geometric verification by fundamental matrix
-            if (goodMatches.size() > 0) {
+            if (goodMatches.size() >= 7) {
                 std::vector<uchar> mask;
                 Mat F = findFundamentalMat(source, destination, FM_RANSAC, 3.0, 0.99, mask);
-
-                // std::cout << goodMatches.size() << std::endl;
-                // std::cout << mask.size() << std::endl;
-                // TODO: Why is mask.size() != goodMatches.size() sometimes?
             
-                for (int matchIdx = 0; matchIdx < goodMatches.size(); matchIdx++) {
+                for (int matchIdx = 0; matchIdx < mask.size(); matchIdx++) {
                     if (mask[i]) {
-                        // This is a good match
-                        images[i].keypoint_matches[goodMatches[matchIdx].queryIdx][j] = goodMatches[matchIdx].trainIdx;
-                        images[i].keypoint_matches[goodMatches[matchIdx].trainIdx][i] = goodMatches[matchIdx].queryIdx;
+                        // Classify this as a good match
+                        // images[i].keypoint_matches[goodMatches[matchIdx].queryIdx][j] = goodMatches[matchIdx].trainIdx;
+                        // images[i].keypoint_matches[goodMatches[matchIdx].trainIdx][i] = goodMatches[matchIdx].queryIdx;
+
+                        images[i].keypoint_matches[j][goodMatches[matchIdx].queryIdx] = goodMatches[matchIdx].trainIdx;
+                        images[j].keypoint_matches[i][goodMatches[matchIdx].trainIdx] = goodMatches[matchIdx].queryIdx;
                     }
                 }
             }
 
             // Output example matches for debug
             /*
-            if (i == 0 & j == 1) {
+            if (i == 0 & j == 8) {
                 Mat outImg;
                 drawMatches(images[i].img, images[i].keypoints, images[j].img, images[j].keypoints, goodMatches, outImg);
                 imshow("Matches", outImg);
                 waitKey(0);
             }
             */
+            
         }
     }
+
+    return 0;
+}
+
+int FeatureMatcher::getSceneGraph(std::vector<Image> images) {
+    std::cout << "Constructing scene graph..." << std::endl;
+
+    std::ofstream graph ("./data/out/test.txt");
+
+    graph << "graph sceneGraph {" << std::endl;
+
+    for (int i = 0; i < images.size() - 1; i++) {
+        for (int j = i + 1; j < images.size(); j++) {
+            int count = 0;
+            
+            std::cout << "Get matches map for images " << i << " and " << j << std::endl;
+            std::map<int,int> matches_ij = images[i].keypoint_matches.at(j);
+
+            // count matches
+            for (int kp = 0; kp < images[i].keypoints.size(); kp++) {
+                try {
+                    int kp2 = matches_ij.at(kp);
+                    count++;
+                } catch(std::out_of_range) {
+                    // kp does not contain a match in image j
+                }
+            }
+
+            std::cout << "image " << i << " matches with image " << j << ", " << count << " times" << std::endl;
+
+            // if image i has enough matches with image j
+            // TODO: make this (25) a parameter
+            if (count > 25) {
+                graph << images[i].name << " -- " << images[j].name << std::endl;
+            }
+            
+        }
+    }
+
+    graph << "}" << std::endl;
+
+    graph.close();
 
     return 0;
 }
