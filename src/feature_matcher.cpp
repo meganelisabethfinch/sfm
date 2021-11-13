@@ -15,7 +15,6 @@ int FeatureMatcher::detect(std::vector<Image> images) {
 }
 
 int FeatureMatcher::match(std::vector<Image> images) {
-    
     Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED);
     for (int i = 0; i < images.size() - 1; i++) {
         for (int j = i+1; j < images.size(); j++) {
@@ -44,9 +43,6 @@ int FeatureMatcher::match(std::vector<Image> images) {
                 for (int matchIdx = 0; matchIdx < mask.size(); matchIdx++) {
                     if (mask[i]) {
                         // Classify this as a good match
-                        // images[i].keypoint_matches[goodMatches[matchIdx].queryIdx][j] = goodMatches[matchIdx].trainIdx;
-                        // images[i].keypoint_matches[goodMatches[matchIdx].trainIdx][i] = goodMatches[matchIdx].queryIdx;
-
                         images[i].keypoint_matches[j][goodMatches[matchIdx].queryIdx] = goodMatches[matchIdx].trainIdx;
                         images[j].keypoint_matches[i][goodMatches[matchIdx].trainIdx] = goodMatches[matchIdx].queryIdx;
                     }
@@ -80,10 +76,11 @@ int FeatureMatcher::getSceneGraph(std::vector<Image> images) {
         for (int j = i + 1; j < images.size(); j++) {
             int count = 0;
             
+            // Why is this throwing an exception even when there are matches?
             std::cout << "Get matches map for images " << i << " and " << j << std::endl;
             std::map<int,int> matches_ij = images[i].keypoint_matches.at(j);
 
-            // count matches
+            // Count matches between images i and j
             for (int kp = 0; kp < images[i].keypoints.size(); kp++) {
                 try {
                     int kp2 = matches_ij.at(kp);

@@ -1,4 +1,4 @@
-CFLAGS = -std=c++17 -I./headers
+CFLAGS = -std=c++17 -I./headers -g
 LDFLAGS = `pkg-config --cflags --libs opencv4`
 SRC = ./src/*.cpp
 
