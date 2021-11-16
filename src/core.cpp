@@ -9,7 +9,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/highgui.hpp>
-#include <opencv2/sfm/triangulation.hpp>
+// #include <opencv2/sfm/triangulation.hpp>
 
 using namespace cv;
 namespace fs = std::filesystem;
