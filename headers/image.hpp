@@ -14,5 +14,8 @@ class Image {
         // the first keypoint index is an index into this.keypoints
         // the second keypoint index is an index into image_j.keypoints (?)
         std::map<int, std::map<int, int>> keypoint_matches;
+
+        // map<imgIdx, fundamentalMatrix&>
+        std::map<int, cv::Mat> fundamentalMatrices;
 };
 #endif

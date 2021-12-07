@@ -10,11 +10,11 @@
 
 using namespace cv;
 
-bool FeatureMatcher::passesLoweRatioTest(const std::vector<DMatch>& match) {
+bool FeatureMatcher::passesLoweRatioTest(const std::vector<DMatch>& match) const {
     return match.size() == 2 && match[0].distance < match[1].distance * loweRatio;
 }
 
-int FeatureMatcher::detect(std::vector<Image> images) {
+int FeatureMatcher::detect(std::vector<Image>& images) {
     return 0;
 }
 
@@ -39,9 +39,24 @@ int FeatureMatcher::match(std::vector<Image>& images) {
             }
             
             // Geometric verification by fundamental matrix
-            if (goodMatches.size() >= 7) {
+            if (enoughMatchesToFindMatrix(goodMatches)) {
                 std::vector<uchar> mask;
                 Mat F = findFundamentalMat(source, destination, FM_RANSAC, 3.0, 0.99, mask);
+
+                // Store fundamental matrix
+                if (F.rows == 3) {
+                    images[i].fundamentalMatrices[j] = F;
+                    images[j].fundamentalMatrices[i] = F;
+                } else if (F.rows == 9) {
+
+                    // Sometimes we get a 9x3 matrix with 3 possible Fs
+                    // Arbitrarily take the first
+
+                    cv::Rect r(0,0,3,3);
+                    Mat clone = F(r).clone();
+                    images[i].fundamentalMatrices[j] = clone;
+                    images[j].fundamentalMatrices[i] = clone;
+                }
 
                 for (int matchIdx = 0; matchIdx < mask.size(); matchIdx++) {
                     if (mask[i]) {
@@ -53,13 +68,14 @@ int FeatureMatcher::match(std::vector<Image>& images) {
             }
 
             // Output example matches for debug
-
+            /*
             if (i == 0 & j == 2) {
                 Mat outImg;
                 drawMatches(images[i].img, images[i].keypoints, images[j].img, images[j].keypoints, goodMatches, outImg);
                 imshow("Matches", outImg);
                 waitKey(0);
             }
+            */
 
             
         }
@@ -67,6 +83,9 @@ int FeatureMatcher::match(std::vector<Image>& images) {
 
     return 0;
 }
+
+bool
+FeatureMatcher::enoughMatchesToFindMatrix(const std::vector<DMatch> &goodMatches) const { return goodMatches.size() >= 7; }
 
 int FeatureMatcher::getSceneGraph(std::vector<Image>& images) {
     std::cout << "Constructing scene graph..." << std::endl;

@@ -7,3 +7,6 @@ app:
 
 run:
 	./build/app -i "/Users/meganfinch/Documents/Part II Project/Code/data/lion"
+
+debug:
+	lldb ./build/app

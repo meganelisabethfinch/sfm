@@ -9,6 +9,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/highgui.hpp>
+#include <triangulator.hpp>
 // #include <opencv2/sfm/triangulation.hpp>
 
 using namespace cv;
@@ -85,7 +86,10 @@ int main(int argc, char** argv) {
     // 4. image registration
 
     // 5. triangulation
-    // triangulatePoints()
+    std::cout << "Triangulating points..." << std::endl;
+    Triangulator triangulator;
+
+    triangulator.triangulatePoints(input_images);
 
     // 6. bundle adjustment
 
