@@ -45,8 +45,8 @@ int FeatureMatcher::match(std::vector<Image>& images) {
 
                 // Store fundamental matrix
                 if (F.rows == 3) {
-                    images[i].fundamentalMatrices[j] = F;
-                    images[j].fundamentalMatrices[i] = F;
+                    images[i].fundamentalMatrices[&images[j]] = F;
+                    images[j].fundamentalMatrices[&images[i]] = F;
                 } else if (F.rows == 9) {
 
                     // Sometimes we get a 9x3 matrix with 3 possible Fs
@@ -54,28 +54,28 @@ int FeatureMatcher::match(std::vector<Image>& images) {
 
                     cv::Rect r(0,0,3,3);
                     Mat clone = F(r).clone();
-                    images[i].fundamentalMatrices[j] = clone;
-                    images[j].fundamentalMatrices[i] = clone;
+                    images[i].fundamentalMatrices[&images[j]] = clone;
+                    images[j].fundamentalMatrices[&images[i]] = clone;
                 }
 
                 for (int matchIdx = 0; matchIdx < mask.size(); matchIdx++) {
                     if (mask[i]) {
                         // Classify this as a good match
-                        images[i].keypoint_matches[j][goodMatches[matchIdx].queryIdx] = goodMatches[matchIdx].trainIdx;
-                        images[j].keypoint_matches[i][goodMatches[matchIdx].trainIdx] = goodMatches[matchIdx].queryIdx;
+                        images[i].keypoint_matches[&images[j]][goodMatches[matchIdx].queryIdx] = goodMatches[matchIdx].trainIdx;
+                        images[j].keypoint_matches[&images[i]][goodMatches[matchIdx].trainIdx] = goodMatches[matchIdx].queryIdx;
                     }
                 }
             }
 
             // Output example matches for debug
-            /*
+
             if (i == 0 & j == 2) {
                 Mat outImg;
                 drawMatches(images[i].img, images[i].keypoints, images[j].img, images[j].keypoints, goodMatches, outImg);
                 imshow("Matches", outImg);
                 waitKey(0);
             }
-            */
+
 
             
         }
@@ -100,7 +100,7 @@ int FeatureMatcher::getSceneGraph(std::vector<Image>& images) {
 
             // TODO: I don't like using exceptions as control flow... use map.contains(key) from C++20?
             try {
-                std::map<int, int> matches_ij = images[i].keypoint_matches.at(j);
+                std::map<int, int> matches_ij = images[i].keypoint_matches.at(&images[j]);
 
                 // Count matches between images i and j
                 for (int kp = 0; kp < images[i].keypoints.size(); kp++) {
@@ -124,6 +124,7 @@ int FeatureMatcher::getSceneGraph(std::vector<Image>& images) {
             
         }
     }
+
 
     graph << "}" << std::endl;
 

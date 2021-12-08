@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
     std::cout << "Triangulating points..." << std::endl;
     Triangulator triangulator;
 
-    triangulator.triangulatePoints(input_images);
+    triangulator.reconstruct(input_images);
 
     // 6. bundle adjustment
 
