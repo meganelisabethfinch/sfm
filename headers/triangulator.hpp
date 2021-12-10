@@ -7,6 +7,7 @@
 class Triangulator {
     private:
         PointCloud pointCloud;
+        std::vector<Image*> registeredImages;
 
     public:
         Triangulator();

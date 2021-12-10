@@ -19,7 +19,7 @@ class FeatureMatcher {
         
         int match(std::vector<Image>& images);
 
-        int getSceneGraph(std::vector<Image>& images);
+        int getSceneGraph(std::vector<Image>& images) const;
 
         bool enoughMatchesToFindMatrix(const std::vector<cv::DMatch> &goodMatches) const;
 };

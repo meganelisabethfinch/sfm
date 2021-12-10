@@ -87,15 +87,15 @@ int FeatureMatcher::match(std::vector<Image>& images) {
 bool
 FeatureMatcher::enoughMatchesToFindMatrix(const std::vector<DMatch> &goodMatches) const { return goodMatches.size() >= 7; }
 
-int FeatureMatcher::getSceneGraph(std::vector<Image>& images) {
+int FeatureMatcher::getSceneGraph(std::vector<Image>& images) const {
     std::cout << "Constructing scene graph..." << std::endl;
 
     std::ofstream graph ("./data/out/scene_graph.dot");
 
     graph << "graph sceneGraph {" << std::endl;
 
-    for (int i = 0; i < images.size() - 1; i++) {
-        for (int j = i + 1; j < images.size(); j++) {
+    for (size_t i = 0; i < images.size() - 1; i++) {
+        for (size_t j = i + 1; j < images.size(); j++) {
             int count = 0;
 
             // TODO: I don't like using exceptions as control flow... use map.contains(key) from C++20?
@@ -103,7 +103,7 @@ int FeatureMatcher::getSceneGraph(std::vector<Image>& images) {
                 std::map<int, int> matches_ij = images[i].keypoint_matches.at(&images[j]);
 
                 // Count matches between images i and j
-                for (int kp = 0; kp < images[i].keypoints.size(); kp++) {
+                for (size_t kp = 0; kp < images[i].keypoints.size(); kp++) {
                     try {
                         int kp2 = matches_ij.at(kp);
                         count++;

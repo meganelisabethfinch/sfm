@@ -14,7 +14,7 @@ Triangulator::Triangulator() {
 int Triangulator::reconstruct(std::vector<Image> &images) {
 
     // Compute baseline pose
-    compute_pose(images[41], images[45]);
+    compute_pose(images[0], images[1]);
 
     // Output to file
     pointCloudToPly();
@@ -33,6 +33,8 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
     // Recover pose R and t
     Mat R;
     Mat t;
+    std::vector<size_t> points1_idx;
+    std::vector<size_t> points2_idx;
     std::vector<Point2d> points1;
     std::vector<Point2d> points2;
 
@@ -42,6 +44,9 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
         try {
             int j = image1.keypoint_matches.at(&image2).at(i);
             KeyPoint kp2 = image2.keypoints.at(j);
+
+            points1_idx.push_back(i);
+            points2_idx.push_back(j);
 
             points1.push_back(kp1.pt);
             points2.push_back(kp2.pt);
@@ -65,18 +70,36 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
     std::cout << points4D << std::endl;
     // TODO: use homogenous coords to check if point in front of camera
     for (int i = 0; i < points4D.cols; i++) {
-        StructuredPoint structuredPoint;
-        double factor = points4D.at<double>(3, i);
-        structuredPoint.point = Point3d(points4D.at<double>(0, i) / factor, points4D.at<double>(1, i) / factor, points4D.at<double>(2, i) / factor);
 
-        // TODO: also store originating views of points
-        pointCloud.push_back(structuredPoint);
+        Point3d* point = pointCloud.addPoint(points4D.at<double>(0, i), points4D.at<double>(1, i), points4D.at<double>(2, i), points4D.at<double>(3,i));
+
+        // Store originating views of points
+        pointCloud.updateOriginatingViews(point, &image1, points1_idx[i]);
+        pointCloud.updateOriginatingViews(point, &image2, points2_idx[i]);
     }
+
+    registeredImages.push_back(&image1);
+    registeredImages.push_back(&image2);
 
     return 0;
 }
 
 int Triangulator::compute_pose(Image &image) {
+    std::vector<Point3d> objectPoints;
+    std::vector<Point2d> imagePoints;
+
+    for (int i = 0; i < image.keypoints.size(); i++) {
+        // check if keypoint already in point cloud
+
+        // if so, add it and objectPoints to imagePoints
+    }
+
+    Mat K = Mat::eye(3, 3, CV_32F);
+    Mat rvec;
+    Mat tvec;
+
+    // Compute pose PnP
+    solvePnPRansac(objectPoints, imagePoints, K, NULL, rvec, tvec, false, 100, 8.0, 0.99, noArray(), SOLVEPNP_EPNP);
     return 0;
 }
 
@@ -93,12 +116,10 @@ int Triangulator::pointCloudToPly() {
     // Other properties like colour
     file << "end_header" << std::endl;
 
-    std::cout << pointCloud.size() << std::endl;
-
-    for (int pt = 0; pt < pointCloud.size(); pt++) {
-        file << pointCloud[pt].point.x << " ";
-        file << pointCloud[pt].point.y << " ";
-        file << pointCloud[pt].point.z << std::endl;
+    for (size_t pt = 0; pt < pointCloud.size(); pt++) {
+        file << pointCloud.getPointByIndex(pt)->x << " ";
+        file << pointCloud.getPointByIndex(pt)->y << " ";
+        file << pointCloud.getPointByIndex(pt)->z << std::endl;
     }
 
     file.close();
