@@ -35,8 +35,8 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
     Mat t;
     std::vector<size_t> points1_idx;
     std::vector<size_t> points2_idx;
-    std::vector<Point2d> points1;
-    std::vector<Point2d> points2;
+    std::vector<Point2f> points1;
+    std::vector<Point2f> points2;
 
     // Probably a better way to store these in the first place
     for (int i = 0; i < image1.keypoints.size(); i++) {
@@ -71,7 +71,7 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
     // TODO: use homogenous coords to check if point in front of camera
     for (int i = 0; i < points4D.cols; i++) {
 
-        Point3d* point = pointCloud.addPoint(points4D.at<double>(0, i), points4D.at<double>(1, i), points4D.at<double>(2, i), points4D.at<double>(3,i));
+        Point3f* point = pointCloud.addPoint(points4D.at<float>(0, i), points4D.at<float>(1, i), points4D.at<float>(2, i), points4D.at<float>(3,i));
 
         // Store originating views of points
         pointCloud.updateOriginatingViews(point, &image1, points1_idx[i]);
