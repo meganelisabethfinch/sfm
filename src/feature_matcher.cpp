@@ -75,8 +75,6 @@ int FeatureMatcher::match(std::vector<Image>& images) {
                 imshow("Matches", outImg);
                 waitKey(0);
             }
-
-
             
         }
     }

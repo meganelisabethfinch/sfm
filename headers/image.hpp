@@ -3,6 +3,7 @@
 
 #include <opencv2/core/mat.hpp>
 #include <map>
+#include "pose.h"
 
 class Image {
     public:
@@ -17,5 +18,7 @@ class Image {
 
         // map<imgIdx, fundamentalMatrix&>
         std::map<Image*, cv::Mat> fundamentalMatrices;
+
+        Pose pose;
 };
 #endif

@@ -15,6 +15,12 @@ int Triangulator::reconstruct(std::vector<Image> &images) {
 
     // Compute baseline pose
     compute_pose(images[0], images[1]);
+    triangulate(images[0], images[1]);
+
+    for (int i = 2; i < images.size(); i++) {
+        compute_pose(images[i]);
+        // then triangulate points
+    }
 
     // Output to file
     pointCloudToPly();
@@ -33,41 +39,57 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
     // Recover pose R and t
     Mat R;
     Mat t;
-    std::vector<size_t> points1_idx;
-    std::vector<size_t> points2_idx;
+
     std::vector<Point2f> points1;
     std::vector<Point2f> points2;
 
-    // Probably a better way to store these in the first place
-    for (int i = 0; i < image1.keypoints.size(); i++) {
-        KeyPoint kp1 = image1.keypoints.at(i);
-        try {
-            int j = image1.keypoint_matches.at(&image2).at(i);
-            KeyPoint kp2 = image2.keypoints.at(j);
+    std::map<int, int> matches = image1.keypoint_matches[&image2];
 
-            points1_idx.push_back(i);
-            points2_idx.push_back(j);
-
-            points1.push_back(kp1.pt);
-            points2.push_back(kp2.pt);
-        } catch (std::out_of_range) {
-            // kp1 in image1 does NOT contain a match in image2
-        }
+    for (auto const& [key, val] : matches) {
+        points1.push_back(image1.keypoints[key].pt);
+        points2.push_back(image2.keypoints[val].pt);
     }
 
     recoverPose(E, points1, points2, K, R, t);
 
+    // Store matrices
+    image1.pose.R = Mat::eye(3,3,CV_32F);
+    image1.pose.t = Mat::zeros(3,1,CV_32F);
+
+    image2.pose.R = R;
+    image2.pose.t = t;
+
+    return 0;
+}
+
+std::vector<Point2f> getPointsFromIndices(std::vector<KeyPoint> kp1, std::vector<KeyPoint> kp2, std::vector<DMatch> matches) {
+
+}
+
+int Triangulator::triangulate(Image &image1, Image &image2) {
     // Define projection matrices
     Mat M1; // = [I | 0]
-    hconcat(Mat::eye(3,3,CV_32F), Mat::zeros(3, 1, CV_32F), M1);
+    hconcat(image1.pose.R, image1.pose.t, M1);
     Mat M2;
-    hconcat(R, t, M2);
+    hconcat(image2.pose.R, image2.pose.t, M2);
+
+    std::vector<size_t> points1_idx;
+    std::vector<size_t> points2_idx;
+    std::vector<Point2f> points1;
+    std::vector<Point2f> points2;
+    std::map<int, int> matches = image1.keypoint_matches[&image2];
+
+    for (auto const& [key, val] : matches) {
+        points1_idx.push_back(key);
+        points2_idx.push_back(val);
+        points1.push_back(image1.keypoints[key].pt);
+        points2.push_back(image2.keypoints[val].pt);
+    }
 
     Mat points4D;
 
     triangulatePoints(M1, M2, points1, points2, points4D);
 
-    std::cout << points4D << std::endl;
     // TODO: use homogenous coords to check if point in front of camera
     for (int i = 0; i < points4D.cols; i++) {
 
@@ -78,28 +100,58 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
         pointCloud.updateOriginatingViews(point, &image2, points2_idx[i]);
     }
 
-    registeredImages.push_back(&image1);
-    registeredImages.push_back(&image2);
-
-    return 0;
+    pointCloud.registerImage(image1);
+    pointCloud.registerImage(image2);
 }
 
 int Triangulator::compute_pose(Image &image) {
-    std::vector<Point3d> objectPoints;
-    std::vector<Point2d> imagePoints;
+    std::vector<Point3f> objectPoints;
+    std::vector<Point2f> imagePoints;
+    std::vector<Point3f*> objectPointsIdx;
 
-    for (int i = 0; i < image.keypoints.size(); i++) {
-        // check if keypoint already in point cloud
+    for (auto const& oldView : pointCloud.registeredImages) {
+        try {
+            std::map<int, int> matches = image.keypoint_matches[oldView];
 
-        // if so, add it and objectPoints to imagePoints
+            for (auto& [kp1_idx,kp2_idx] : matches) {
+                Point3f* point3F = pointCloud.lookupPoint(oldView, kp2_idx);
+
+                // If point exists AND is not already in objectPoints
+                if (point3F != nullptr
+                    && std::find(objectPointsIdx.begin(), objectPointsIdx.end(), point3F) == objectPointsIdx.end()) {
+                    objectPoints.push_back(*point3F);
+                    imagePoints.push_back(image.keypoints[kp1_idx].pt);
+                    objectPointsIdx.push_back(point3F);
+                }
+            }
+        } catch (std::out_of_range&) {
+            // No matches between new image and oldView
+        }
     }
+
+    /*
+    // Collect all descriptors of registered images
+    Mat oldDescriptors;
+    for (auto const& oldView : pointCloud.registeredImages) {
+        hconcat(oldDescriptors, oldView->descriptors, oldDescriptors);
+    }
+
+    // Match old descriptors against descriptors in the new view
+    */
 
     Mat K = Mat::eye(3, 3, CV_32F);
     Mat rvec;
     Mat tvec;
 
     // Compute pose PnP
-    solvePnPRansac(objectPoints, imagePoints, K, NULL, rvec, tvec, false, 100, 8.0, 0.99, noArray(), SOLVEPNP_EPNP);
+    solvePnPRansac(objectPoints,imagePoints,K,
+                   NULL,rvec,tvec,
+                   false,100,8.0,
+                   0.99, noArray(),SOLVEPNP_EPNP);
+
+    Rodrigues(rvec, image.pose.R);
+    image.pose.t = tvec;
+
     return 0;
 }
 

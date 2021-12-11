@@ -14,6 +14,8 @@ class PointCloud {
         std::vector<Point3f> listOfPoints;
 
     public:
+        std::vector<Image*> registeredImages;
+
         Point3f* addPoint(float x, float y, float z) {
             Point3f point = cv::Point3f(x,y,z);
             listOfPoints.push_back(point);
@@ -30,8 +32,20 @@ class PointCloud {
             return 0;
         }
 
+        int registerImage(Image& image) {
+            registeredImages.push_back(&image);
+        }
+
         size_t size() const {
             return listOfPoints.size();
+        }
+
+        cv::Point3f* lookupPoint(Image* image, const size_t keypoint_idx) const {
+            try {
+                return mapPoints2Dto3D.at(image).at(keypoint_idx);
+            } catch (std::out_of_range&) {
+                return nullptr;
+            }
         }
 
         cv::Point3f* getPointByIndex(size_t i) {
