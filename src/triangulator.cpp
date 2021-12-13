@@ -1,9 +1,11 @@
 #include "triangulator.hpp"
 #include <opencv2/core/types.hpp>
 #include <opencv2/calib3d.hpp>
+
 #include <point_cloud.hpp>
 #include <iostream>
 #include <fstream>
+#include <opencv2/highgui.hpp>
 
 using namespace cv;
 
@@ -17,10 +19,12 @@ int Triangulator::reconstruct(std::vector<Image> &images) {
     compute_pose(images[0], images[1]);
     triangulate(images[0], images[1]);
 
+    /*
     for (int i = 2; i < images.size(); i++) {
         compute_pose(images[i]);
         // then triangulate points
     }
+    */
 
     // Output to file
     pointCloudToPly();
@@ -59,11 +63,10 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
     image2.pose.R = R;
     image2.pose.t = t;
 
+    std::cout << R << std::endl;
+    std::cout << t << std::endl;
+
     return 0;
-}
-
-std::vector<Point2f> getPointsFromIndices(std::vector<KeyPoint> kp1, std::vector<KeyPoint> kp2, std::vector<DMatch> matches) {
-
 }
 
 int Triangulator::triangulate(Image &image1, Image &image2) {
@@ -86,6 +89,13 @@ int Triangulator::triangulate(Image &image1, Image &image2) {
         points2.push_back(image2.keypoints[val].pt);
     }
 
+    /*
+    Mat outImg;
+    drawMatches(image1.img, image1.keypoints, image2.img, image2.keypoints, goodMatches, outImg);
+    imshow("Matches", outImg);
+    waitKey(0);
+*/
+
     Mat points4D;
 
     triangulatePoints(M1, M2, points1, points2, points4D);
@@ -100,8 +110,30 @@ int Triangulator::triangulate(Image &image1, Image &image2) {
         pointCloud.updateOriginatingViews(point, &image2, points2_idx[i]);
     }
 
+/*
+   Mat points3D;
+   std::vector<std::vector<Point2f>> points2d;
+   points2d.push_back(points1);
+   points2d.push_back(points2);
+
+   std::vector<Mat> projectionMatrices;
+   projectionMatrices.push_back(M1);
+   projectionMatrices.push_back(M2);
+
+   sfm::triangulatePoints(points2d, projectionMatrices, points3D);
+
+   for (int i = 0; i < points3D.cols; i++) {
+       Point3f* point = pointCloud.addPoint(points3D.at<float>(0,i), points3D.at<float>(1,i), points3D.at<float>(2,i));
+        
+        pointCloud.updateOriginatingViews(point, &image1, points1_idx[i]);
+        pointCloud.updateOriginatingViews(point, &image2, points2_idx[i]);
+   }
+   */
+
     pointCloud.registerImage(image1);
     pointCloud.registerImage(image2);
+
+    return 0;
 }
 
 int Triangulator::compute_pose(Image &image) {
@@ -128,6 +160,9 @@ int Triangulator::compute_pose(Image &image) {
             // No matches between new image and oldView
         }
     }
+
+    std::cout << objectPoints.size() << std::endl;
+    std::cout << imagePoints.size() << std::endl;
 
     /*
     // Collect all descriptors of registered images
@@ -175,6 +210,33 @@ int Triangulator::pointCloudToPly() {
     }
 
     file.close();
+
+    return 0;
+}
+
+int Triangulator::exportToCOLMAP() {
+    std::cout << "Exporting to COLMAP..." << std::endl;
+
+    std::ofstream cameras ("./data/out/colmap_export/cameras.txt");
+    cameras.close();
+
+    std::ofstream images ("./data/out/colmap_export/images.txt");
+    for (auto const& image : pointCloud.registeredImages) {
+        // IMAGE_ID, QW, QX, QY, QZ, TX, TY, TZ, CAMERA_ID, NAME
+
+        // POINTS2D as (X, Y, POINT3D_ID)
+
+    }
+    images.close();
+
+    /*
+    std::ofstream points3D ("./data/out/colmap_export/points3D.txt");
+    for (auto const& point : pointCloud.listOfPoints) {
+        // POINT3D_ID, X, Y, Z, R, G, B, ERROR, TRACK[] as (IMAGE_ID, POINT2D_IDX)
+
+    }
+    points3D.close();
+    */
 
     return 0;
 }

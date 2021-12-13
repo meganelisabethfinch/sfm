@@ -48,7 +48,6 @@ int FeatureMatcher::match(std::vector<Image>& images) {
                     images[i].fundamentalMatrices[&images[j]] = F;
                     images[j].fundamentalMatrices[&images[i]] = F;
                 } else if (F.rows == 9) {
-
                     // Sometimes we get a 9x3 matrix with 3 possible Fs
                     // Arbitrarily take the first
 
@@ -69,7 +68,7 @@ int FeatureMatcher::match(std::vector<Image>& images) {
 
             // Output example matches for debug
 
-            if (i == 0 & j == 2) {
+            if (i == 0 & j == 1) {
                 Mat outImg;
                 drawMatches(images[i].img, images[i].keypoints, images[j].img, images[j].keypoints, goodMatches, outImg);
                 imshow("Matches", outImg);
@@ -105,7 +104,7 @@ int FeatureMatcher::getSceneGraph(std::vector<Image>& images) const {
                     try {
                         int kp2 = matches_ij.at(kp);
                         count++;
-                    } catch(std::out_of_range) {
+                    } catch(std::out_of_range&) {
                         // kp does not contain a match in image j
                     }
                 }

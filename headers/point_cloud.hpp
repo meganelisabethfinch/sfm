@@ -11,9 +11,10 @@ class PointCloud {
     private:
         std::map<Image*, std::map<size_t, Point3f*>> mapPoints2Dto3D;
         std::map<Point3f*, std::map<Image*, size_t>> mapPoints3Dto2D;
-        std::vector<Point3f> listOfPoints;
 
     public:
+        std::vector<Point3f> listOfPoints;
+
         std::vector<Image*> registeredImages;
 
         Point3f* addPoint(float x, float y, float z) {
@@ -32,7 +33,7 @@ class PointCloud {
             return 0;
         }
 
-        int registerImage(Image& image) {
+        void registerImage(Image& image) {
             registeredImages.push_back(&image);
         }
 

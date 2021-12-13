@@ -20,6 +20,8 @@ class Triangulator {
         int reconstruct(std::vector<Image>& images);
 
         int pointCloudToPly();
+
+        int exportToCOLMAP();
 };
 
 

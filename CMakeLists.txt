@@ -4,6 +4,7 @@ project(sfm)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(DOPENCV_EXTRA_MODULES_PATH /Users/meganfinch/opencv_contrib/modules/sfm)
 
 # Detect clang. Not officially reported by cmake.
 execute_process(COMMAND "${CMAKE_CXX_COMPILER}" "-v" ERROR_VARIABLE CXX_VER_STDERR)
