@@ -76,56 +76,59 @@ int Triangulator::triangulate(Image &image1, Image &image2) {
     imshow("Matches", outImg);
     waitKey(0);
     */
-/*
-    Mat points4D;
 
-    triangulatePoints(M1, M2, points1, points2, points4D);
+   if (USE_CV_SFM_TRIANGULATION) {
+       Mat points3D;
 
-    // TODO: use homogenous coords to check if point in front of camera
-    for (int i = 0; i < points4D.cols; i++) {
+       cv::Mat points1Mat = cv::Mat_<float>(2, 0);
+       cv::Mat points2Mat = cv::Mat_<float>(2, 0);
 
-        Point3f* point = pointCloud.addPoint(points4D.at<float>(0, i), points4D.at<float>(1, i), points4D.at<float>(2, i), points4D.at<float>(3,i));
+       for (const auto &point: points1) {
+           cv::Mat pointAsMatrix = (cv::Mat_<float>(2, 1) << point.x, point.y);
+           cv::hconcat(points1Mat, pointAsMatrix, points1Mat);
+       }
 
-        // Store originating views of points
-        pointCloud.updateOriginatingViews(point, &image1, points1_idx[i]);
-        pointCloud.updateOriginatingViews(point, &image2, points2_idx[i]);
-    }
-*/
+       for (const auto &point: points2) {
+           cv::Mat pointAsMatrix = (cv::Mat_<float>(2, 1) << point.x, point.y);
+           cv::hconcat(points2Mat, pointAsMatrix, points2Mat);
+       }
 
-   Mat points3D;
+       std::vector<Mat> points2d;
+       points2d.push_back(points1Mat);
+       points2d.push_back(points2Mat);
 
-   cv::Mat points1Mat = cv::Mat_<float>(2,0);
-   cv::Mat points2Mat = cv::Mat_<float>(2, 0);
+       std::vector<Mat> projectionMatrices;
+       projectionMatrices.push_back(M1);
+       projectionMatrices.push_back(M2);
 
-   for (const auto& point : points1) {
-       cv::Mat pointAsMatrix = (cv::Mat_<float>(2,1) << point.x, point.y);
-       cv::hconcat(points1Mat, pointAsMatrix, points1Mat);
+       sfm::triangulatePoints(points2d, projectionMatrices, points3D);
+
+       for (int i = 0; i < points3D.cols; i++) {
+           Point3f *point = pointCloud.addPoint(points3D.at<float>(0, i), points3D.at<float>(1, i),
+                                                points3D.at<float>(2, i));
+
+           pointCloud.updateOriginatingViews(point, image1.getId(), matches1to2[i].queryIdx);
+           pointCloud.updateOriginatingViews(point, image2.getId(), matches1to2[i].trainIdx);
+       }
+   } else {
+       Mat points4D;
+
+        triangulatePoints(M1, M2, points1, points2, points4D);
+
+        // TODO: use homogenous coords to check if point in front of camera
+        for (int i = 0; i < points4D.cols; i++) {
+
+            Point3f *point = pointCloud.addPoint(points4D.at<float>(0, i), points4D.at<float>(1, i),
+                                                 points4D.at<float>(2, i), points4D.at<float>(3, i));
+
+            // Store originating views of points
+            pointCloud.updateOriginatingViews(point, image1.getId(), matches1to2[i].queryIdx);
+            pointCloud.updateOriginatingViews(point, image2.getId(), matches1to2[i].trainIdx);
+        }
    }
 
-   for (const auto& point : points2) {
-       cv::Mat pointAsMatrix = (cv::Mat_<float>(2,1) << point.x, point.y);
-       cv::hconcat(points2Mat, pointAsMatrix, points2Mat);
-   }
-
-   std::vector<Mat> points2d;
-   points2d.push_back(points1Mat);
-   points2d.push_back(points2Mat);
-
-    std::vector<Mat> projectionMatrices;
-   projectionMatrices.push_back(M1);
-   projectionMatrices.push_back(M2);
-
-   sfm::triangulatePoints(points2d, projectionMatrices, points3D);
-
-   for (int i = 0; i < points3D.cols; i++) {
-       Point3f* point = pointCloud.addPoint(points3D.at<float>(0,i), points3D.at<float>(1,i), points3D.at<float>(2,i));
-        
-        pointCloud.updateOriginatingViews(point, &image1, matches1to2[i].queryIdx);
-        pointCloud.updateOriginatingViews(point, &image2, matches1to2[i].trainIdx);
-   }
-
-    pointCloud.registerImage(image1);
-    pointCloud.registerImage(image2);
+    pointCloud.registerImage(image1.getId());
+    pointCloud.registerImage(image2.getId());
 
     return 0;
 }
@@ -214,7 +217,7 @@ int Triangulator::exportToCOLMAP() {
     cameras.close();
 
     std::ofstream images ("./data/out/colmap_export/images.txt");
-    for (auto const& image : pointCloud.registeredImages) {
+    for (auto const& image : pointCloud.getRegisteredImageIDs()) {
         // IMAGE_ID, QW, QX, QY, QZ, TX, TY, TZ, CAMERA_ID, NAME
 
         // POINTS2D as (X, Y, POINT3D_ID)

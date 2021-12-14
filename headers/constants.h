@@ -12,6 +12,8 @@ const int MATCH_COUNT_THRESHOLD = 25;
 
 const bool DEBUG_MODE = true;
 
+const bool USE_CV_SFM_TRIANGULATION = true;
+
 typedef int ImageID;
 typedef int KeyPointIDX;
 

@@ -9,13 +9,13 @@ using namespace cv;
 
 class PointCloud {
     private:
-        std::map<Image*, std::map<size_t, Point3f*>> mapPoints2Dto3D;
-        std::map<Point3f*, std::map<Image*, size_t>> mapPoints3Dto2D;
+        std::map<ImageID, std::map<KeyPointIDX, Point3f*>> mapPoints2Dto3D;
+        std::map<Point3f*, std::map<ImageID, KeyPointIDX>> mapPoints3Dto2D;
 
-    public:
         std::vector<Point3f> listOfPoints;
+        std::vector<ImageID> registeredImages;
+    public:
 
-        std::vector<Image*> registeredImages;
 
         Point3f* addPoint(float x, float y, float z) {
             Point3f point = cv::Point3f(x,y,z);
@@ -27,23 +27,23 @@ class PointCloud {
             return addPoint(x / w, y / w, z/ w);
         }
 
-        int updateOriginatingViews(Point3f* point, Image* image, size_t keypoint_idx) {
-            mapPoints2Dto3D[image][keypoint_idx] = point;
-            mapPoints3Dto2D[point][image] = keypoint_idx;
+        int updateOriginatingViews(Point3f* point, ImageID image, KeyPointIDX kpIdx) {
+            mapPoints2Dto3D[image][kpIdx] = point;
+            mapPoints3Dto2D[point][image] = kpIdx;
             return 0;
         }
 
-        void registerImage(Image& image) {
-            registeredImages.push_back(&image);
+        void registerImage(int imageId) {
+            registeredImages.push_back(imageId);
         }
 
         size_t size() const {
             return listOfPoints.size();
         }
 
-        cv::Point3f* lookupPoint(Image* image, const size_t keypoint_idx) const {
+        cv::Point3f* lookupPoint(ImageID image, const KeyPointIDX kpIdx) const {
             try {
-                return mapPoints2Dto3D.at(image).at(keypoint_idx);
+                return mapPoints2Dto3D.at(image).at(kpIdx);
             } catch (std::out_of_range&) {
                 return nullptr;
             }
@@ -51,6 +51,10 @@ class PointCloud {
 
         cv::Point3f* getPointByIndex(size_t i) {
             return &listOfPoints[i];
+        }
+
+        std::vector<ImageID> getRegisteredImageIDs() {
+            return registeredImages;
         }
 };
 
