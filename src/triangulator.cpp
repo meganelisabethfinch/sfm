@@ -45,29 +45,14 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
     Mat R;
     Mat t;
 
-    std::vector<Point2f> points1;
-    std::vector<Point2f> points2;
-
-    /*
-    std::map<int, int> matches = image1.keypoint_matches[&image2];
-
-    for (auto const& [key, val] : matches) {
-        points1.push_back(image1.keypoints[key].pt);
-        points2.push_back(image2.keypoints[val].pt);
-    }
-     */
+    std::vector<Point2f> points1 = image1.getMatchedPoints(image2.getId());
+    std::vector<Point2f> points2 = image2.getMatchedPoints(image1.getId());
 
     recoverPose(E, points1, points2, K, R, t);
 
     // Store matrices
-    image1.pose.R = Mat::eye(3,3,CV_32F);
-    image1.pose.t = Mat::zeros(3,1,CV_32F);
-
-    image2.pose.R = R;
-    image2.pose.t = t;
-
-    std::cout << R << std::endl;
-    std::cout << t << std::endl;
+    image1.setPose(Mat::eye(3,3,CV_32F), Mat::zeros(3,1,CV_32F));
+    image2.setPose(R, t);
 
     return 0;
 }
@@ -75,31 +60,22 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
 int Triangulator::triangulate(Image &image1, Image &image2) {
     // Define projection matrices
     Mat M1; // = [I | 0]
-    hconcat(image1.pose.R, image1.pose.t, M1);
+    hconcat(image1.getPose().R, image1.getPose().t, M1);
     Mat M2;
-    hconcat(image2.pose.R, image2.pose.t, M2);
+    hconcat(image2.getPose().R, image2.getPose().t, M2);
 
-    std::vector<size_t> points1_idx;
-    std::vector<size_t> points2_idx;
-    std::vector<Point2f> points1;
-    std::vector<Point2f> points2;
-    /*
-    std::map<int, int> matches = image1.keypoint_matches[&image2];
+    std::vector<Point2f> points1 = image1.getMatchedPoints(image2.getId());
+    std::vector<Point2f> points2 = image2.getMatchedPoints(image1.getId());
 
-    for (auto const& [key, val] : matches) {
-        points1_idx.push_back(key);
-        points2_idx.push_back(val);
-        points1.push_back(image1.getKeyPoints()[key].pt);
-        points2.push_back(image2.getKeyPoints()[val].pt);
-    }
-     */
+    // The query/train indices of these points are also needed, but only to update originating views
+    std::vector<DMatch> matches1to2 = image1.getMatchesByImage(image2.getId());
 
     /*
     Mat outImg;
     drawMatches(image1.img, image1.keypoints, image2.img, image2.keypoints, goodMatches, outImg);
     imshow("Matches", outImg);
     waitKey(0);
-*/
+    */
 /*
     Mat points4D;
 
@@ -117,11 +93,25 @@ int Triangulator::triangulate(Image &image1, Image &image2) {
 */
 
    Mat points3D;
-   std::vector<std::vector<Point2f>> points2d;
-   points2d.push_back(points1);
-   points2d.push_back(points2);
 
-   std::vector<Mat> projectionMatrices;
+   cv::Mat points1Mat = cv::Mat_<float>(2,0);
+   cv::Mat points2Mat = cv::Mat_<float>(2, 0);
+
+   for (const auto& point : points1) {
+       cv::Mat pointAsMatrix = (cv::Mat_<float>(2,1) << point.x, point.y);
+       cv::hconcat(points1Mat, pointAsMatrix, points1Mat);
+   }
+
+   for (const auto& point : points2) {
+       cv::Mat pointAsMatrix = (cv::Mat_<float>(2,1) << point.x, point.y);
+       cv::hconcat(points2Mat, pointAsMatrix, points2Mat);
+   }
+
+   std::vector<Mat> points2d;
+   points2d.push_back(points1Mat);
+   points2d.push_back(points2Mat);
+
+    std::vector<Mat> projectionMatrices;
    projectionMatrices.push_back(M1);
    projectionMatrices.push_back(M2);
 
@@ -130,10 +120,9 @@ int Triangulator::triangulate(Image &image1, Image &image2) {
    for (int i = 0; i < points3D.cols; i++) {
        Point3f* point = pointCloud.addPoint(points3D.at<float>(0,i), points3D.at<float>(1,i), points3D.at<float>(2,i));
         
-        pointCloud.updateOriginatingViews(point, &image1, points1_idx[i]);
-        pointCloud.updateOriginatingViews(point, &image2, points2_idx[i]);
+        pointCloud.updateOriginatingViews(point, &image1, matches1to2[i].queryIdx);
+        pointCloud.updateOriginatingViews(point, &image2, matches1to2[i].trainIdx);
    }
-
 
     pointCloud.registerImage(image1);
     pointCloud.registerImage(image2);
@@ -188,8 +177,8 @@ int Triangulator::compute_pose(Image &image) {
                    false,100,8.0,
                    0.99, noArray(),SOLVEPNP_EPNP);
 
-    Rodrigues(rvec, image.pose.R);
-    image.pose.t = tvec;
+    Rodrigues(rvec, image.getPose().R);
+    image.getPose().t = tvec;
 
     return 0;
 }

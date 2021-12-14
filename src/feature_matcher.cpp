@@ -88,14 +88,6 @@ int FeatureMatcher::match(std::vector<Image>& images) {
                     imshow("Matches", outImg);
                     waitKey(0);
                 }
-
-                if (i == 0 & j == 1) {
-                    Mat outImg;
-                    drawMatches(images[i].getImage(), images[i].getKeyPoints(), images[j].getImage(),
-                                images[j].getKeyPoints(), images[i].getMatchesByImage(j), outImg);
-                    imshow("Matches", outImg);
-                    waitKey(0);
-                }
             }
         }
     }

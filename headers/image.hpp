@@ -5,7 +5,7 @@
 #include <map>
 #include "pose.h"
 #include "constants.h"
-#include "pairwise_matches.hpp"
+#include "pairwise_match.hpp"
 
 class Image {
     private:
@@ -19,11 +19,10 @@ class Image {
         std::map<ImageID, std::vector<cv::DMatch>> matches;
         std::map<ImageID, std::map<KeyPointIDX, KeyPointIDX>> matchesByKeyPoint;
 
-        std::map<int, cv::Mat> fundamentalMatrices;
-
-public:
+        std::map<ImageID, cv::Mat> fundamentalMatrices;
         Pose pose;
 
+public:
         Image(int id, std::string name, cv::Mat img) {
             this->id = id;
             this->name = name;
@@ -72,6 +71,33 @@ public:
             }
         }
 
+        std::vector<cv::KeyPoint> getMatchedKeyPoints(int imageId) {
+            try {
+                std::vector<cv::DMatch> matchesWith = matches[imageId];
+                std::vector<cv::KeyPoint> matchedKeyPoints;
+                for (auto &match: matchesWith) {
+                    matchedKeyPoints.push_back(keypoints[match.queryIdx]);
+                }
+                return matchedKeyPoints;
+            } catch (std::out_of_range&) {
+                // No matches between this image and images[imageId]
+                return {};
+            }
+        }
+
+        std::vector<cv::Point2f> getMatchedPoints(int imageId) {
+            try {
+                std::vector<cv::DMatch> matchesWith = matches[imageId];
+                std::vector<cv::Point2f> matchedPoints;
+                for (auto &match: matchesWith) {
+                    matchedPoints.push_back(keypoints[match.queryIdx].pt);
+                }
+                return matchedPoints;
+            } catch (std::out_of_range&) {
+                return {};
+            }
+        }
+
         /**
          * @param imageId
          * @return number of (verified) matches between this image and images[imageId]
@@ -86,9 +112,12 @@ public:
             }
         }
 
-
         cv::Mat& getFundamentalMatrix(ImageID imageId) {
             return fundamentalMatrices.at(imageId);
+        }
+
+        Pose& getPose() {
+            return pose;
         }
 
         /**
@@ -114,7 +143,7 @@ public:
             }
         }
 
-        void setFundamentalMatrix(int imageId, cv::Mat F) {
+        void setFundamentalMatrix(int imageId, cv::Mat& F) {
             fundamentalMatrices[imageId] = F;
         }
 

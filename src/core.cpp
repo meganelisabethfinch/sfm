@@ -81,12 +81,10 @@ int main(int argc, char** argv) {
     // 4. image registration
 
     // 5. triangulation
-    /*
     std::cout << "Triangulating points..." << std::endl;
     Triangulator triangulator;
 
     triangulator.reconstruct(input_images);
-     */
 
     // 6. bundle adjustment
 
