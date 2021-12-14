@@ -14,6 +14,8 @@ const bool DEBUG_MODE = true;
 
 const bool USE_CV_SFM_TRIANGULATION = true;
 
+const cv::Mat I = cv::Mat::eye(3,3,CV_32F);
+
 typedef int ImageID;
 typedef int KeyPointIDX;
 

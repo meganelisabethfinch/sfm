@@ -61,23 +61,20 @@ int FeatureMatcher::match(std::vector<Image>& images) {
 
                 // Store fundamental matrix
                 // TODO: should one be F.inverse?
-                images[i].setFundamentalMatrix(j, F);
-                images[j].setFundamentalMatrix(i, F);
+                images[i].setFundamentalMatrix(images[j].getId(), F);
+                images[j].setFundamentalMatrix(images[i].getId(), F);
 
                 for (int k = 0; k < mask.size(); k++) {
                     if (mask[i]) {
                         // Classify this as a good match
                         verifiedMatches.push_back(loweRatioMatches[k]);
-
-                        // images[i].keypoint_matches[&images[j]][goodMatches[matchIdx].queryIdx] = goodMatches[matchIdx].trainIdx;
-                        // images[j].keypoint_matches[&images[i]][goodMatches[matchIdx].trainIdx] = goodMatches[matchIdx].queryIdx;
                     }
                 }
             }
 
             // Store matches
-            images[i].setMatches(j, verifiedMatches);
-            images[j].setMatches(i, verifiedMatches, false);
+            images[i].setMatches(images[j].getId(), verifiedMatches);
+            images[j].setMatches(images[i].getId(), verifiedMatches, false);
 
             // Output example matches for debug
             if (DEBUG_MODE) {

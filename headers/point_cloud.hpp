@@ -7,6 +7,8 @@
 
 using namespace cv;
 
+typedef int PointIDX;
+
 class PointCloud {
     private:
         std::map<ImageID, std::map<KeyPointIDX, Point3f*>> mapPoints2Dto3D;
@@ -14,9 +16,10 @@ class PointCloud {
 
         std::vector<Point3f> listOfPoints;
         std::vector<ImageID> registeredImages;
-    public:
 
+        std::vector<float> errors; // list of mean reprojection errors
 
+public:
         Point3f* addPoint(float x, float y, float z) {
             Point3f point = cv::Point3f(x,y,z);
             listOfPoints.push_back(point);

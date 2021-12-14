@@ -17,6 +17,8 @@ class Triangulator {
 
         int compute_pose(Image& image);
 
+        float calculateReprojectionError(cv::Point3f& point3D, cv::Point2f& point2D, cv::Mat& projectionMatrix);
+
         int reconstruct(std::vector<Image>& images);
 
         int pointCloudToPly();

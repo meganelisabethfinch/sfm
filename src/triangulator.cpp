@@ -15,10 +15,23 @@ Triangulator::Triangulator() {
 }
 
 int Triangulator::reconstruct(std::vector<Image> &images) {
+    // Find pair of images with highest number of matches
+    ImageID baseline1 = 0;
+    ImageID baseline2 = 1;
+    int highestMatches = 0;
+    for (size_t i = 0; i < images.size() - 1; i++) {
+        for (size_t j = i + 1; j < images.size(); j++) {
+            if (images[i].countMatchesByImage(j) > highestMatches) {
+                baseline1 = i;
+                baseline2 = j;
+                highestMatches = images[i].countMatchesByImage(j);
+            }
+        }
+    }
 
     // Compute baseline pose
-    compute_pose(images[0], images[1]);
-    triangulate(images[0], images[1]);
+    compute_pose(images[baseline1], images[baseline2]);
+    triangulate(images[baseline1], images[baseline2]);
 
     /*
     for (int i = 2; i < images.size(); i++) {
@@ -34,6 +47,7 @@ int Triangulator::reconstruct(std::vector<Image> &images) {
 }
 
 int Triangulator::compute_pose(Image &image1, Image &image2) {
+    std::cout << "Registering images " << image1.getId() << " and " << image2.getId() << std::endl;
     // For now, use 'ideal' camera matrix
     Mat K = Mat::eye(3, 3, CV_32F);
 
@@ -53,6 +67,12 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
     // Store matrices
     image1.setPose(Mat::eye(3,3,CV_32F), Mat::zeros(3,1,CV_32F));
     image2.setPose(R, t);
+
+    std::cout << R << std::endl;
+    std::cout << t << std::endl;
+
+    std::cout << image2.getPose().R << std::endl;
+    std::cout << image2.getPose().t << std::endl;
 
     return 0;
 }
@@ -103,9 +123,15 @@ int Triangulator::triangulate(Image &image1, Image &image2) {
 
        sfm::triangulatePoints(points2d, projectionMatrices, points3D);
 
+       std::vector<float> reprojectionError1;
+       std::vector<float> reprojectionError2;
+
        for (int i = 0; i < points3D.cols; i++) {
            Point3f *point = pointCloud.addPoint(points3D.at<float>(0, i), points3D.at<float>(1, i),
                                                 points3D.at<float>(2, i));
+
+           reprojectionError1.push_back(calculateReprojectionError(*point, points1[i], M1));
+           reprojectionError2.push_back(calculateReprojectionError(*point, points2[i], M2));
 
            pointCloud.updateOriginatingViews(point, image1.getId(), matches1to2[i].queryIdx);
            pointCloud.updateOriginatingViews(point, image2.getId(), matches1to2[i].trainIdx);
@@ -234,5 +260,16 @@ int Triangulator::exportToCOLMAP() {
     points3D.close();
     */
 
+    return 0;
+}
+
+float Triangulator::calculateReprojectionError(Point3f &point3D, Point2f &point2D, cv::Mat& projectionMatrix) {
+
+    // Convert to homogenous?
+    cv::Mat point3Dvec = (cv::Mat_<float>(4, 1) << point3D.x, point3D.y, point3D.z, 1);
+    cv::Mat reprojectedPoint = projectionMatrix * point3Dvec;
+
+    // std::cout << point2D.x << ", " << point2D.y << std::endl;
+    // std::cout << reprojectedPoint << std::endl;
     return 0;
 }

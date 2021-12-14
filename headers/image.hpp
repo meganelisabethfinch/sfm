@@ -2,7 +2,10 @@
 #define IMAGE_H
 
 #include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
+
 #include <map>
+#include <iostream>
 #include "pose.h"
 #include "constants.h"
 #include "pairwise_match.hpp"
