@@ -43,25 +43,21 @@ int main(int argc, char** argv) {
     // TODO: error handling if glob fails/image directory is invalid
 
     std::cout << "Opening images..." << std::endl;
-    std::vector<Image> input_images(fn.size());
-    for (size_t i = 0; i < fn.size(); i++) {
-        input_images[i].name = fs::path(fn[i]).filename();
-        input_images[i].img = imread(fn[i], IMREAD_COLOR);
+    std::vector<Image> input_images;
+    for (int i = 0; i < fn.size(); i++) {
+        std::string name = fs::path(fn[i]).filename();
+        cv::Mat img = imread(fn[i], IMREAD_COLOR);
+
+        input_images.push_back(Image(i, name, img));
     }
     #pragma endregion Parse Inputs
 
     #pragma region Feature Detection
     std::cout << "Finding features..." << std::endl;
 
-    Ptr<SIFT> detector = SIFT::create();
-    std::vector<std::vector<KeyPoint>> all_keypoints(input_images.size());
-    std::vector<Mat> all_descriptors(input_images.size());
-    for (size_t i = 0; i < input_images.size(); i++) {
-        std::vector<KeyPoint> keypoints;
-        Mat descriptors;
+    FeatureMatcher matcher;
 
-        detector->detectAndCompute(input_images[i].img, noArray(), input_images[i].keypoints, input_images[i].descriptors);
-    }
+    matcher.detect(input_images);
 
     // Output example keypoints for debug
     /*
@@ -77,7 +73,6 @@ int main(int argc, char** argv) {
     #pragma region Feature Matching and Geometric Verification
     std::cout << "Finding matches..." << std::endl;
 
-    FeatureMatcher matcher(0.6);
     matcher.match(input_images);
 
     matcher.getSceneGraph(input_images);
@@ -86,10 +81,12 @@ int main(int argc, char** argv) {
     // 4. image registration
 
     // 5. triangulation
+    /*
     std::cout << "Triangulating points..." << std::endl;
     Triangulator triangulator;
 
     triangulator.reconstruct(input_images);
+     */
 
     // 6. bundle adjustment
 

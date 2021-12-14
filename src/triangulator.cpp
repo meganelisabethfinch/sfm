@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <opencv2/highgui.hpp>
+#include <opencv2/sfm/triangulation.hpp>
 
 using namespace cv;
 
@@ -38,7 +39,7 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
 
     // Compute essential matrix E
     // E = transpose(K') * E * K
-    Mat E = image1.fundamentalMatrices.at(&image2);
+    Mat E = image1.getFundamentalMatrix(image2.getId());
 
     // Recover pose R and t
     Mat R;
@@ -47,12 +48,14 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
     std::vector<Point2f> points1;
     std::vector<Point2f> points2;
 
+    /*
     std::map<int, int> matches = image1.keypoint_matches[&image2];
 
     for (auto const& [key, val] : matches) {
         points1.push_back(image1.keypoints[key].pt);
         points2.push_back(image2.keypoints[val].pt);
     }
+     */
 
     recoverPose(E, points1, points2, K, R, t);
 
@@ -80,14 +83,16 @@ int Triangulator::triangulate(Image &image1, Image &image2) {
     std::vector<size_t> points2_idx;
     std::vector<Point2f> points1;
     std::vector<Point2f> points2;
+    /*
     std::map<int, int> matches = image1.keypoint_matches[&image2];
 
     for (auto const& [key, val] : matches) {
         points1_idx.push_back(key);
         points2_idx.push_back(val);
-        points1.push_back(image1.keypoints[key].pt);
-        points2.push_back(image2.keypoints[val].pt);
+        points1.push_back(image1.getKeyPoints()[key].pt);
+        points2.push_back(image2.getKeyPoints()[val].pt);
     }
+     */
 
     /*
     Mat outImg;
@@ -95,7 +100,7 @@ int Triangulator::triangulate(Image &image1, Image &image2) {
     imshow("Matches", outImg);
     waitKey(0);
 */
-
+/*
     Mat points4D;
 
     triangulatePoints(M1, M2, points1, points2, points4D);
@@ -109,8 +114,8 @@ int Triangulator::triangulate(Image &image1, Image &image2) {
         pointCloud.updateOriginatingViews(point, &image1, points1_idx[i]);
         pointCloud.updateOriginatingViews(point, &image2, points2_idx[i]);
     }
+*/
 
-/*
    Mat points3D;
    std::vector<std::vector<Point2f>> points2d;
    points2d.push_back(points1);
@@ -128,7 +133,7 @@ int Triangulator::triangulate(Image &image1, Image &image2) {
         pointCloud.updateOriginatingViews(point, &image1, points1_idx[i]);
         pointCloud.updateOriginatingViews(point, &image2, points2_idx[i]);
    }
-   */
+
 
     pointCloud.registerImage(image1);
     pointCloud.registerImage(image2);
@@ -141,6 +146,7 @@ int Triangulator::compute_pose(Image &image) {
     std::vector<Point2f> imagePoints;
     std::vector<Point3f*> objectPointsIdx;
 
+    /*
     for (auto const& oldView : pointCloud.registeredImages) {
         try {
             std::map<int, int> matches = image.keypoint_matches[oldView];
@@ -152,7 +158,7 @@ int Triangulator::compute_pose(Image &image) {
                 if (point3F != nullptr
                     && std::find(objectPointsIdx.begin(), objectPointsIdx.end(), point3F) == objectPointsIdx.end()) {
                     objectPoints.push_back(*point3F);
-                    imagePoints.push_back(image.keypoints[kp1_idx].pt);
+                    imagePoints.push_back(image.getKeyPoints()[kp1_idx].pt);
                     objectPointsIdx.push_back(point3F);
                 }
             }
@@ -160,9 +166,7 @@ int Triangulator::compute_pose(Image &image) {
             // No matches between new image and oldView
         }
     }
-
-    std::cout << objectPoints.size() << std::endl;
-    std::cout << imagePoints.size() << std::endl;
+     */
 
     /*
     // Collect all descriptors of registered images
@@ -171,7 +175,7 @@ int Triangulator::compute_pose(Image &image) {
         hconcat(oldDescriptors, oldView->descriptors, oldDescriptors);
     }
 
-    // Match old descriptors against descriptors in the new view
+    // matches old descriptors against descriptors in the new view
     */
 
     Mat K = Mat::eye(3, 3, CV_32F);

@@ -6,15 +6,9 @@
 
 class FeatureMatcher {
     private:
-        double loweRatio;
-
         bool passesLoweRatioTest(const std::vector<cv::DMatch>& match) const;
 
     public:
-        FeatureMatcher(double loweRatio) {
-            this->loweRatio = loweRatio;
-        };
-        
         int detect(std::vector<Image>& images);
         
         int match(std::vector<Image>& images);

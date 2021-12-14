@@ -1,4 +1,5 @@
 #include "feature_matcher.hpp"
+#include "constants.h"
 
 #include <opencv2/core/types.hpp>
 #include <opencv2/features2d.hpp>
@@ -11,10 +12,21 @@
 using namespace cv;
 
 bool FeatureMatcher::passesLoweRatioTest(const std::vector<DMatch>& match) const {
-    return match.size() == 2 && match[0].distance < match[1].distance * loweRatio;
+    return match.size() == 2 && match[0].distance < match[1].distance * LOWE_RATIO;
 }
 
 int FeatureMatcher::detect(std::vector<Image>& images) {
+    Ptr<SIFT> detector = SIFT::create();
+
+    for (size_t i = 0; i < images.size(); i++) {
+        std::vector<KeyPoint> keypoints;
+        Mat descriptors;
+
+        detector->detectAndCompute(images[i].getImage(), noArray(), keypoints, descriptors);
+
+        images[i].setKeyPointsAndDescriptors(keypoints, descriptors);
+    }
+
     return 0;
 }
 
@@ -24,57 +36,67 @@ int FeatureMatcher::match(std::vector<Image>& images) {
         for (int j = i+1; j < images.size(); j++) {
             std::vector<std::vector<DMatch>> matches;
             std::vector<Point2f> source, destination;
-            matcher->knnMatch(images[i].descriptors, images[j].descriptors, matches, 2);
+
+            matcher->knnMatch(images[i].getDescriptors(),
+                               images[j].getDescriptors(), matches, 2);
             
-            std::vector<DMatch> goodMatches;
+            std::vector<DMatch> loweRatioMatches;
 
             for (auto& match : matches) {
                 if (passesLoweRatioTest(match)) {
-                    goodMatches.push_back(match[0]);
+                    loweRatioMatches.push_back(match[0]);
 
                     // Track coordinates of keypoints involved in good matches
-                    source.push_back(images[i].keypoints[match[0].queryIdx].pt);
-                    destination.push_back(images[j].keypoints[match[0].trainIdx].pt);
+                    source.push_back(images[i].getKeyPoints()[match[0].queryIdx].pt);
+                    destination.push_back(images[j].getKeyPoints()[match[0].trainIdx].pt);
                 }
             }
-            
+
+            std::vector<DMatch> verifiedMatches;
+
             // Geometric verification by fundamental matrix
-            if (enoughMatchesToFindMatrix(goodMatches)) {
+            if (enoughMatchesToFindMatrix(loweRatioMatches)) {
                 std::vector<uchar> mask;
                 Mat F = findFundamentalMat(source, destination, FM_RANSAC, 3.0, 0.99, mask);
 
                 // Store fundamental matrix
-                if (F.rows == 3) {
-                    images[i].fundamentalMatrices[&images[j]] = F;
-                    images[j].fundamentalMatrices[&images[i]] = F;
-                } else if (F.rows == 9) {
-                    // Sometimes we get a 9x3 matrix with 3 possible Fs
-                    // Arbitrarily take the first
+                // TODO: should one be F.inverse?
+                images[i].setFundamentalMatrix(j, F);
+                images[j].setFundamentalMatrix(i, F);
 
-                    cv::Rect r(0,0,3,3);
-                    Mat clone = F(r).clone();
-                    images[i].fundamentalMatrices[&images[j]] = clone;
-                    images[j].fundamentalMatrices[&images[i]] = clone;
-                }
-
-                for (int matchIdx = 0; matchIdx < mask.size(); matchIdx++) {
+                for (int k = 0; k < mask.size(); k++) {
                     if (mask[i]) {
                         // Classify this as a good match
-                        images[i].keypoint_matches[&images[j]][goodMatches[matchIdx].queryIdx] = goodMatches[matchIdx].trainIdx;
-                        images[j].keypoint_matches[&images[i]][goodMatches[matchIdx].trainIdx] = goodMatches[matchIdx].queryIdx;
+                        verifiedMatches.push_back(loweRatioMatches[k]);
+
+                        // images[i].keypoint_matches[&images[j]][goodMatches[matchIdx].queryIdx] = goodMatches[matchIdx].trainIdx;
+                        // images[j].keypoint_matches[&images[i]][goodMatches[matchIdx].trainIdx] = goodMatches[matchIdx].queryIdx;
                     }
                 }
             }
 
-            // Output example matches for debug
+            // Store matches
+            images[i].setMatches(j, verifiedMatches);
+            images[j].setMatches(i, verifiedMatches, false);
 
-            if (i == 0 & j == 1) {
-                Mat outImg;
-                drawMatches(images[i].img, images[i].keypoints, images[j].img, images[j].keypoints, goodMatches, outImg);
-                imshow("Matches", outImg);
-                waitKey(0);
+            // Output example matches for debug
+            if (DEBUG_MODE) {
+                if (i == 0 & j == 1) {
+                    Mat outImg;
+                    drawMatches(images[i].getImage(), images[i].getKeyPoints(), images[j].getImage(),
+                                images[j].getKeyPoints(), verifiedMatches, outImg);
+                    imshow("Matches", outImg);
+                    waitKey(0);
+                }
+
+                if (i == 0 & j == 1) {
+                    Mat outImg;
+                    drawMatches(images[i].getImage(), images[i].getKeyPoints(), images[j].getImage(),
+                                images[j].getKeyPoints(), images[i].getMatchesByImage(j), outImg);
+                    imshow("Matches", outImg);
+                    waitKey(0);
+                }
             }
-            
         }
     }
 
@@ -82,7 +104,7 @@ int FeatureMatcher::match(std::vector<Image>& images) {
 }
 
 bool
-FeatureMatcher::enoughMatchesToFindMatrix(const std::vector<DMatch> &goodMatches) const { return goodMatches.size() >= 7; }
+FeatureMatcher::enoughMatchesToFindMatrix(const std::vector<DMatch> &goodMatches) const { return goodMatches.size() >= 16; }
 
 int FeatureMatcher::getSceneGraph(std::vector<Image>& images) const {
     std::cout << "Constructing scene graph..." << std::endl;
@@ -93,38 +115,15 @@ int FeatureMatcher::getSceneGraph(std::vector<Image>& images) const {
 
     for (size_t i = 0; i < images.size() - 1; i++) {
         for (size_t j = i + 1; j < images.size(); j++) {
-            int count = 0;
+            size_t matchCount = images[i].countMatchesByImage(j);
 
-            // TODO: I don't like using exceptions as control flow... use map.contains(key) from C++20?
-            try {
-                std::map<int, int> matches_ij = images[i].keypoint_matches.at(&images[j]);
-
-                // Count matches between images i and j
-                for (size_t kp = 0; kp < images[i].keypoints.size(); kp++) {
-                    try {
-                        int kp2 = matches_ij.at(kp);
-                        count++;
-                    } catch(std::out_of_range&) {
-                        // kp does not contain a match in image j
-                    }
-                }
-
-            } catch (std::out_of_range) {
-                // i has no matches with j
+            if (matchCount > MATCH_COUNT_THRESHOLD) {
+                graph << images[i].getName() << " -- " << images[j].getName() << std::endl;
             }
-
-            // if image i has enough matches with image j
-            // TODO: make this (25) a parameter
-            if (count > 25) {
-                graph << images[i].name << " -- " << images[j].name << std::endl;
-            }
-            
         }
     }
 
-
     graph << "}" << std::endl;
-
     graph.close();
 
     return 0;

@@ -4,7 +4,7 @@ project(sfm)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(DOPENCV_EXTRA_MODULES_PATH /Users/meganfinch/opencv_contrib/modules/sfm)
+set(OPENCV_EXTRA_MODULES_PATH /Users/meganfinch/opencv_contrib/modules/sfm)
 
 # Detect clang. Not officially reported by cmake.
 execute_process(COMMAND "${CMAKE_CXX_COMPILER}" "-v" ERROR_VARIABLE CXX_VER_STDERR)
@@ -44,7 +44,7 @@ message(" ")
 # Create sfm executable target
 add_executable(
         sfm
-        src/triangulator.cpp headers/triangulator.hpp headers/point_cloud.hpp headers/pose.h)
+        src/triangulator.cpp headers/triangulator.hpp headers/point_cloud.hpp headers/pose.h headers/constants.h headers/pairwise_matches.hpp)
 
 target_sources(
         sfm
@@ -70,6 +70,7 @@ target_include_directories(
         /Users/meganfinch/opencv-4.5.3/modules/flann/include
         /Users/meganfinch/opencv-4.5.3/modules/imgcodecs/include
         /Users/meganfinch/opencv-4.5.3/modules/videoio/include
+        /Users/meganfinch/opencv_contrib/modules/sfm/include
 )
 
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
@@ -90,25 +91,26 @@ target_link_directories(
         sfm
         PUBLIC
         "${CMAKE_SOURCE_DIR}"
-        "/Users/meganfinch/opencv-4.5.3/cmake-build-release/lib"
+        #"/Users/meganfinch/opencv-4.5.3/cmake-build-release/lib"
 )
 
 target_link_libraries(
         sfm
         Threads::Threads
-        opencv_calib3d
-        opencv_core
-        opencv_dnn
-        opencv_features2d
-        opencv_flann
-        opencv_gapi
-        opencv_highgui
-        opencv_imgcodecs
-        opencv_imgproc
-        opencv_ml
-        opencv_objdetect
-        opencv_photo
-        opencv_stitching
-        opencv_videoio
-        opencv_video
+        #opencv_calib3d
+        #opencv_core
+        #opencv_dnn
+        #opencv_features2d
+        #opencv_flann
+        #opencv_gapi
+        #opencv_highgui
+        #opencv_imgcodecs
+        #opencv_imgproc
+        #opencv_ml
+        #opencv_objdetect
+        #opencv_photo
+        #opencv_stitching
+        #opencv_videoio
+        #opencv_video
+        -I/opt/homebrew/opt/opencv/include/opencv4 -L/opt/homebrew/opt/opencv/lib -lopencv_gapi -lopencv_stitching -lopencv_alphamat -lopencv_aruco -lopencv_barcode -lopencv_bgsegm -lopencv_bioinspired -lopencv_ccalib -lopencv_dnn_objdetect -lopencv_dnn_superres -lopencv_dpm -lopencv_face -lopencv_freetype -lopencv_fuzzy -lopencv_hfs -lopencv_img_hash -lopencv_intensity_transform -lopencv_line_descriptor -lopencv_mcc -lopencv_quality -lopencv_rapid -lopencv_reg -lopencv_rgbd -lopencv_saliency -lopencv_sfm -lopencv_stereo -lopencv_structured_light -lopencv_phase_unwrapping -lopencv_superres -lopencv_optflow -lopencv_surface_matching -lopencv_tracking -lopencv_highgui -lopencv_datasets -lopencv_text -lopencv_plot -lopencv_videostab -lopencv_videoio -lopencv_viz -lopencv_wechat_qrcode -lopencv_xfeatures2d -lopencv_shape -lopencv_ml -lopencv_ximgproc -lopencv_video -lopencv_dnn -lopencv_xobjdetect -lopencv_objdetect -lopencv_calib3d -lopencv_imgcodecs -lopencv_features2d -lopencv_flann -lopencv_xphoto -lopencv_photo -lopencv_imgproc -lopencv_core
 )
