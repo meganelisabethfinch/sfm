@@ -13,11 +13,11 @@ class Triangulator {
 
         int compute_pose(Image& image1, Image& image2);
 
-        int triangulate(Image &image1, Image &image2);
+        void triangulate(Image &image1, Image &image2);
 
         int compute_pose(Image& image);
 
-        float calculateReprojectionError(cv::Point3f& point3D, cv::Point2f& point2D, cv::Mat& projectionMatrix);
+        double calculateReprojectionError(cv::Point3f& point3D, cv::Point2f& point2D, cv::Mat& projectionMatrix);
 
         int reconstruct(std::vector<Image>& images);
 

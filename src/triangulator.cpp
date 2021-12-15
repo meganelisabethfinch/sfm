@@ -65,19 +65,13 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
     recoverPose(E, points1, points2, K, R, t);
 
     // Store matrices
-    image1.setPose(Mat::eye(3,3,CV_32F), Mat::zeros(3,1,CV_32F));
+    image1.setPose(Mat::eye(3,3,CV_64F), Mat::zeros(3,1,CV_64F));
     image2.setPose(R, t);
-
-    std::cout << R << std::endl;
-    std::cout << t << std::endl;
-
-    std::cout << image2.getPose().R << std::endl;
-    std::cout << image2.getPose().t << std::endl;
 
     return 0;
 }
 
-int Triangulator::triangulate(Image &image1, Image &image2) {
+void Triangulator::triangulate(Image &image1, Image &image2) {
     // Define projection matrices
     Mat M1; // = [I | 0]
     hconcat(image1.getPose().R, image1.getPose().t, M1);
@@ -90,15 +84,8 @@ int Triangulator::triangulate(Image &image1, Image &image2) {
     // The query/train indices of these points are also needed, but only to update originating views
     std::vector<DMatch> matches1to2 = image1.getMatchesByImage(image2.getId());
 
-    /*
-    Mat outImg;
-    drawMatches(image1.img, image1.keypoints, image2.img, image2.keypoints, goodMatches, outImg);
-    imshow("Matches", outImg);
-    waitKey(0);
-    */
-
    if (USE_CV_SFM_TRIANGULATION) {
-       Mat points3D;
+       Mat points3d;
 
        cv::Mat points1Mat = cv::Mat_<float>(2, 0);
        cv::Mat points2Mat = cv::Mat_<float>(2, 0);
@@ -121,14 +108,15 @@ int Triangulator::triangulate(Image &image1, Image &image2) {
        projectionMatrices.push_back(M1);
        projectionMatrices.push_back(M2);
 
-       sfm::triangulatePoints(points2d, projectionMatrices, points3D);
+       sfm::triangulatePoints(points2d, projectionMatrices, points3d);
 
-       std::vector<float> reprojectionError1;
-       std::vector<float> reprojectionError2;
+       std::vector<double> reprojectionError1;
+       std::vector<double> reprojectionError2;
 
-       for (int i = 0; i < points3D.cols; i++) {
-           Point3f *point = pointCloud.addPoint(points3D.at<float>(0, i), points3D.at<float>(1, i),
-                                                points3D.at<float>(2, i));
+       for (int i = 0; i < points3d.cols; i++) {
+           Point3f *point = pointCloud.addPoint(points3d.at<float>(0, i),
+                   points3d.at<float>(1, i),
+                   points3d.at<float>(2, i));
 
            reprojectionError1.push_back(calculateReprojectionError(*point, points1[i], M1));
            reprojectionError2.push_back(calculateReprojectionError(*point, points2[i], M2));
@@ -155,8 +143,6 @@ int Triangulator::triangulate(Image &image1, Image &image2) {
 
     pointCloud.registerImage(image1.getId());
     pointCloud.registerImage(image2.getId());
-
-    return 0;
 }
 
 int Triangulator::compute_pose(Image &image) {
@@ -263,13 +249,19 @@ int Triangulator::exportToCOLMAP() {
     return 0;
 }
 
-float Triangulator::calculateReprojectionError(Point3f &point3D, Point2f &point2D, cv::Mat& projectionMatrix) {
+double Triangulator::calculateReprojectionError(Point3f &point3D, Point2f &point2D, cv::Mat& proj) {
 
-    // Convert to homogenous?
+    // Cast to float matrix so it's same type as point3Dvec
+    cv::Mat proj2 = (cv::Mat_<float>(3,4)
+            << proj.at<double>(0,0), proj.at<double>(0,1), proj.at<double>(0,2), proj.at<double>(0,3),
+               proj.at<double>(1,0), proj.at<double>(1,1), proj.at<double>(1,2), proj.at<double>(1,3),
+               proj.at<double>(2,0), proj.at<double>(2,1), proj.at<double>(2,2), proj.at<double>(2,3));
+
     cv::Mat point3Dvec = (cv::Mat_<float>(4, 1) << point3D.x, point3D.y, point3D.z, 1);
-    cv::Mat reprojectedPoint = projectionMatrix * point3Dvec;
+    cv::Mat rp = proj2 * point3Dvec; // reprojected point (homogenous)
+    Point2f rpEuclidean = Point2f(rp.at<float>(0,0) / rp.at<float>(0,2),
+            rp.at<float>(0,1) / rp.at<float>(0,2));
 
-    // std::cout << point2D.x << ", " << point2D.y << std::endl;
-    // std::cout << reprojectedPoint << std::endl;
-    return 0;
+    double error = cv::norm(point2D - rpEuclidean);
+    return error;
 }
