@@ -262,6 +262,10 @@ double Triangulator::calculateReprojectionError(Point3f &point3D, Point2f &point
     Point2f rpEuclidean = Point2f(rp.at<float>(0,0) / rp.at<float>(0,2),
             rp.at<float>(0,1) / rp.at<float>(0,2));
 
+    std::cout << "----" << std::endl;
+    std::cout << point2D << std::endl;
+    std::cout << rpEuclidean << std::endl;
+
     double error = cv::norm(point2D - rpEuclidean);
     return error;
 }
