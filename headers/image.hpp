@@ -8,7 +8,7 @@
 #include <iostream>
 #include "pose.h"
 #include "constants.h"
-#include "pairwise_match.hpp"
+#include "matching.hpp"
 
 class Image {
     private:
@@ -23,7 +23,7 @@ class Image {
         std::map<ImageID, std::map<KeyPointIDX, KeyPointIDX>> matchesByKeyPoint;
 
         std::map<ImageID, cv::Mat> fundamentalMatrices;
-        Pose pose;
+        cv::Matx34f pose;
 
 public:
         Image(int id, std::string name, cv::Mat img) {
@@ -119,7 +119,7 @@ public:
             return fundamentalMatrices.at(imageId);
         }
 
-        Pose& getPose() {
+        cv::Matx34f& getPose() {
             return pose;
         }
 
@@ -155,9 +155,8 @@ public:
             this->descriptors = std::move(descriptors);
         }
 
-        void setPose(cv::Mat R, cv::Mat t) {
-            pose.R = R;
-            pose.t = t;
+        void setPose(cv::Matx34f mat) {
+            pose = mat;
         }
 };
 #endif

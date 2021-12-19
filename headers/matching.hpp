@@ -2,14 +2,14 @@
 // Created by Megan Finch on 13/12/2021.
 //
 
-#ifndef SFM_PAIRWISE_MATCH_HPP
-#define SFM_PAIRWISE_MATCH_HPP
+#ifndef SFM_MATCHING_HPP
+#define SFM_MATCHING_HPP
 
 #include "constants.h"
 #include <opencv2/core/types.hpp>
 
 // TODO: match data structure is complex enough to be refactored into its own class
-class PairwiseMatch {
+class Matching {
 private:
     ImageID queryImage;
     ImageID trainImage;
@@ -21,7 +21,7 @@ private:
 
 
 public:
-    PairwiseMatch(std::vector<cv::DMatch> matches) {
+    Matching(std::vector<cv::DMatch> matches) {
         for (auto& match : matches) {
             queryIndices.push_back(match.queryIdx);
             trainIndices.push_back(match.trainIdx);
@@ -29,10 +29,10 @@ public:
         }
     }
 
-    std::vector<cv::DMatch> toDMatches() const {
+    [[nodiscard]] std::vector<cv::DMatch> toDMatches() const {
         std::vector<cv::DMatch> dmatches;
         for (size_t i = 0; i < queryIndices.size(); i++) {
-            dmatches.push_back(cv::DMatch(queryIndices.at(i), trainIndices.at(i), 0, distances.at(i)));
+            dmatches.emplace_back(queryIndices.at(i), trainIndices.at(i), 0, distances.at(i));
         }
         return dmatches;
     }
@@ -40,4 +40,4 @@ public:
 
 };
 
-#endif //SFM_PAIRWISE_MATCH_HPP
+#endif //SFM_MATCHING_HPP

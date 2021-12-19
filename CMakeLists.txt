@@ -44,7 +44,7 @@ message(" ")
 # Create sfm executable target
 add_executable(
         sfm
-        src/triangulator.cpp headers/triangulator.hpp headers/point_cloud.hpp headers/pose.h headers/constants.h headers/pairwise_match.hpp tests/feature_matcher_tests.cpp tests/gtest_main.cpp)
+        src/triangulator.cpp headers/triangulator.hpp headers/point_cloud.hpp headers/pose.h headers/constants.h headers/matching.hpp tests/feature_matcher_tests.cpp src/sfm_utilities.cpp headers/sfm_utilities.hpp)
 
 target_sources(
         sfm
@@ -86,13 +86,14 @@ if (CMAKE_COMPILER_IS_CLANGXX)
 
 endif()
 
-
 target_link_directories(
         sfm
         PUBLIC
         "${CMAKE_SOURCE_DIR}"
         #"/Users/meganfinch/opencv-4.5.3/cmake-build-release/lib"
 )
+
+find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 
 target_link_libraries(
         sfm
@@ -113,6 +114,7 @@ target_link_libraries(
         #opencv_videoio
         #opencv_video
         -I/opt/homebrew/opt/opencv/include/opencv4 -L/opt/homebrew/opt/opencv/lib -lopencv_gapi -lopencv_stitching -lopencv_alphamat -lopencv_aruco -lopencv_barcode -lopencv_bgsegm -lopencv_bioinspired -lopencv_ccalib -lopencv_dnn_objdetect -lopencv_dnn_superres -lopencv_dpm -lopencv_face -lopencv_freetype -lopencv_fuzzy -lopencv_hfs -lopencv_img_hash -lopencv_intensity_transform -lopencv_line_descriptor -lopencv_mcc -lopencv_quality -lopencv_rapid -lopencv_reg -lopencv_rgbd -lopencv_saliency -lopencv_sfm -lopencv_stereo -lopencv_structured_light -lopencv_phase_unwrapping -lopencv_superres -lopencv_optflow -lopencv_surface_matching -lopencv_tracking -lopencv_highgui -lopencv_datasets -lopencv_text -lopencv_plot -lopencv_videostab -lopencv_videoio -lopencv_viz -lopencv_wechat_qrcode -lopencv_xfeatures2d -lopencv_shape -lopencv_ml -lopencv_ximgproc -lopencv_video -lopencv_dnn -lopencv_xobjdetect -lopencv_objdetect -lopencv_calib3d -lopencv_imgcodecs -lopencv_features2d -lopencv_flann -lopencv_xphoto -lopencv_photo -lopencv_imgproc -lopencv_core
+        Eigen3::Eigen
 )
 
 # Set up unit testing

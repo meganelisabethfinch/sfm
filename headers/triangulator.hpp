@@ -17,13 +17,13 @@ class Triangulator {
 
         int compute_pose(Image& image);
 
-        double calculateReprojectionError(cv::Point3f& point3D, cv::Point2f& point2D, cv::Mat& projectionMatrix);
+        double calculateReprojectionError(cv::Point3f& point3D, cv::Point2f& point2D, cv::Matx34f& proj);
 
         int reconstruct(std::vector<Image>& images);
 
         int pointCloudToPly();
 
-        int exportToCOLMAP();
+        int exportToCOLMAP(std::vector<Image>& input_images);
 };
 
 

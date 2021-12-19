@@ -86,6 +86,8 @@ int main(int argc, char** argv) {
 
     triangulator.reconstruct(input_images);
 
+    triangulator.exportToCOLMAP(input_images);
+
     // 6. bundle adjustment
 
     return 0;

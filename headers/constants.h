@@ -10,9 +10,11 @@ const float LOWE_RATIO = 0.6f;
 // The number of matches required between two images for them to be connected in the scene graph
 const int MATCH_COUNT_THRESHOLD = 25;
 
+const double RANSAC_THRESHOLD = 10.0; // RANSAC inlier threshold
+
 const bool DEBUG_MODE = true;
 
-const bool USE_CV_SFM_TRIANGULATION = true;
+const bool USE_CV_SFM_TRIANGULATION = false;
 
 const cv::Mat I = cv::Mat::eye(3,3,CV_32F);
 

@@ -11,8 +11,8 @@ typedef int PointIDX;
 
 class PointCloud {
     private:
-        std::map<ImageID, std::map<KeyPointIDX, Point3f*>> mapPoints2Dto3D;
-        std::map<Point3f*, std::map<ImageID, KeyPointIDX>> mapPoints3Dto2D;
+        std::map<ImageID, std::map<KeyPointIDX, PointIDX>> mapPoints2Dto3D;
+        std::map<PointIDX, std::map<ImageID, KeyPointIDX>> mapPoints3Dto2D;
 
         std::vector<Point3f> listOfPoints;
         std::vector<ImageID> registeredImages;
@@ -20,17 +20,17 @@ class PointCloud {
         std::vector<float> errors; // list of mean reprojection errors
 
 public:
-        Point3f* addPoint(float x, float y, float z) {
+        size_t addPoint(float x, float y, float z) {
             Point3f point = cv::Point3f(x,y,z);
             listOfPoints.push_back(point);
-            return &(listOfPoints[listOfPoints.size() - 1]);
+            return listOfPoints.size() - 1;
         }
 
-        Point3f* addPoint(float x, float y, float z, float w) {
+        size_t addPoint(float x, float y, float z, float w) {
             return addPoint(x / w, y / w, z/ w);
         }
 
-        int updateOriginatingViews(Point3f* point, ImageID image, KeyPointIDX kpIdx) {
+        int updateOriginatingViews(PointIDX point, ImageID image, KeyPointIDX kpIdx) {
             mapPoints2Dto3D[image][kpIdx] = point;
             mapPoints3Dto2D[point][image] = kpIdx;
             return 0;
@@ -40,20 +40,27 @@ public:
             registeredImages.push_back(imageId);
         }
 
-        size_t size() const {
+        [[nodiscard]] size_t size() const {
             return listOfPoints.size();
         }
 
-        cv::Point3f* lookupPoint(ImageID image, const KeyPointIDX kpIdx) const {
+        /**
+         * Returns the identifier (index) of the 3D point associated with a given keypoint,
+         * or -1 if no such point exists.
+         * @param image
+         * @param kpIdx
+         * @return
+         */
+        [[nodiscard]] int lookupPoint(ImageID image, const KeyPointIDX kpIdx) const {
             try {
                 return mapPoints2Dto3D.at(image).at(kpIdx);
             } catch (std::out_of_range&) {
-                return nullptr;
+                return -1;
             }
         }
 
-        cv::Point3f* getPointByIndex(size_t i) {
-            return &listOfPoints[i];
+        cv::Point3f& getPointByIndex(size_t i) {
+            return listOfPoints[i];
         }
 
         std::vector<ImageID> getRegisteredImageIDs() {
