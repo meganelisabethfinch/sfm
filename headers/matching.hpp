@@ -6,6 +6,7 @@
 #define SFM_MATCHING_HPP
 
 #include "constants.h"
+#include "data_structures.h"
 #include <opencv2/core/types.hpp>
 
 // TODO: match data structure is complex enough to be refactored into its own class
@@ -14,8 +15,8 @@ private:
     ImageID queryImage;
     ImageID trainImage;
 
-    std::vector<KeyPointIDX> queryIndices; // indices of the matched keypoints in the first image
-    std::vector<KeyPointIDX> trainIndices; // indices of the matched keypoints in the second image
+    std::vector<PointIDX> queryIndices; // indices of the matched keypoints in the first image
+    std::vector<PointIDX> trainIndices; // indices of the matched keypoints in the second image
 
     std::vector<float> distances;
 

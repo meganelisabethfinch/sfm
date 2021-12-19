@@ -7,12 +7,12 @@
 
 using namespace cv;
 
-typedef int PointIDX;
-
 class PointCloud {
     private:
-        std::map<ImageID, std::map<KeyPointIDX, PointIDX>> mapPoints2Dto3D;
-        std::map<PointIDX, std::map<ImageID, KeyPointIDX>> mapPoints3Dto2D;
+        // Map ImageID -> KeyPointID -> 3D Point ID
+        std::map<ImageID, std::map<PointIDX, PointIDX>> mapPoints2Dto3D;
+        // Map 3D Point ID -> ImageID -> KeyPointID
+        std::map<PointIDX, std::map<ImageID, PointIDX>> mapPoints3Dto2D;
 
         std::vector<Point3f> listOfPoints;
         std::vector<ImageID> registeredImages;
@@ -20,17 +20,12 @@ class PointCloud {
         std::vector<float> errors; // list of mean reprojection errors
 
 public:
-        size_t addPoint(float x, float y, float z) {
-            Point3f point = cv::Point3f(x,y,z);
+        PointIDX addPoint(const cv::Point3f& point) {
             listOfPoints.push_back(point);
             return listOfPoints.size() - 1;
         }
 
-        size_t addPoint(float x, float y, float z, float w) {
-            return addPoint(x / w, y / w, z/ w);
-        }
-
-        int updateOriginatingViews(PointIDX point, ImageID image, KeyPointIDX kpIdx) {
+        int updateOriginatingViews(PointIDX point, ImageID image, PointIDX kpIdx) {
             mapPoints2Dto3D[image][kpIdx] = point;
             mapPoints3Dto2D[point][image] = kpIdx;
             return 0;
@@ -51,7 +46,7 @@ public:
          * @param kpIdx
          * @return
          */
-        [[nodiscard]] int lookupPoint(ImageID image, const KeyPointIDX kpIdx) const {
+        [[nodiscard]] int lookupPoint(ImageID image, const PointIDX kpIdx) const {
             try {
                 return mapPoints2Dto3D.at(image).at(kpIdx);
             } catch (std::out_of_range&) {

@@ -7,18 +7,15 @@
 
 #include "image.hpp"
 
+class SFMUtilities {
+public:
 /**
  *
  * @param image1
  * @param image2
  * @return the number of homography inliers between the two images
  */
-int findHomographyInliers(Image& image1, Image& image2);
+static int findHomographyInliers(Image &image1, Image &image2);
 
-void getPointsFromMatches(std::vector<cv::KeyPoint>& leftKeyPoints,
-                          std::vector<cv::KeyPoint>& rightKeyPoints,
-                          std::vector<cv::DMatch>& matches,
-                          std::vector<cv::Point2f>& alignedLeft,
-                          std::vector<cv::Point2f>& alignedRight);
-
+};
 #endif //SFM_SFM_UTILITIES_HPP

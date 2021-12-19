@@ -6,9 +6,9 @@
 
 #include <map>
 #include <iostream>
-#include "pose.h"
 #include "constants.h"
 #include "matching.hpp"
+#include "data_structures.h"
 
 class Image {
     private:
@@ -20,7 +20,7 @@ class Image {
         cv::Mat descriptors;
 
         std::map<ImageID, std::vector<cv::DMatch>> matches;
-        std::map<ImageID, std::map<KeyPointIDX, KeyPointIDX>> matchesByKeyPoint;
+        std::map<ImageID, std::map<PointIDX, PointIDX>> matchesByKeyPoint;
 
         std::map<ImageID, cv::Mat> fundamentalMatrices;
         cv::Matx34f pose;
@@ -66,7 +66,7 @@ public:
          * @param kpIdx an index into this->keypoints[kpIdx]
          * @return an index into images[imageId].getKeypoints() of a matching point, or -1
          */
-        int getMatchByImageAndKeypoint(int imageId, int kpIdx) const {
+        int getMatchByImageAndKeypoint(size_t imageId, size_t kpIdx) const {
             try {
                 return matchesByKeyPoint.at(imageId).at(kpIdx);
             } catch (std::out_of_range&) {
@@ -88,7 +88,7 @@ public:
             }
         }
 
-        std::vector<cv::Point2f> getMatchedPoints(int imageId) {
+        std::vector<cv::Point2f> getMatchedPoints(size_t imageId) {
             try {
                 std::vector<cv::DMatch> matchesWith = matches[imageId];
                 std::vector<cv::Point2f> matchedPoints;
@@ -105,7 +105,7 @@ public:
          * @param imageId
          * @return number of (verified) matches between this image and images[imageId]
          */
-        size_t countMatchesByImage(int imageId) {
+        size_t countMatchesWithImage(int imageId) {
             try {
                 std::vector<cv::DMatch> matchesWith = matches[imageId];
                 return matchesWith.size();

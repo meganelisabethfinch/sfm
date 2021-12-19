@@ -43,7 +43,7 @@ message(" ")
 # Create sfm executable target
 add_executable(
         sfm
-        src/triangulator.cpp headers/triangulator.hpp headers/point_cloud.hpp headers/pose.h headers/constants.h headers/matching.hpp tests/feature_matcher_tests.cpp src/sfm_utilities.cpp headers/sfm_utilities.hpp)
+        src/triangulator.cpp headers/triangulator.hpp headers/point_cloud.hpp headers/constants.h headers/matching.hpp tests/feature_matcher_tests.cpp src/sfm_utilities.cpp headers/sfm_utilities.hpp headers/data_structures.h)
 
 target_sources(
         sfm

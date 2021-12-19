@@ -55,7 +55,7 @@ int FeatureMatcher::match(std::vector<Image>& images) {
             std::vector<DMatch> verifiedMatches;
 
             // Geometric verification by fundamental matrix
-            if (enoughMatchesToFindMatrix(loweRatioMatches)) {
+            if (enoughMatchesForFundamentalMatrix(loweRatioMatches)) {
                 std::vector<uchar> mask;
                 Mat F = findFundamentalMat(source, destination, FM_RANSAC, 3.0, 0.99, mask);
 
@@ -92,8 +92,7 @@ int FeatureMatcher::match(std::vector<Image>& images) {
     return 0;
 }
 
-bool
-FeatureMatcher::enoughMatchesToFindMatrix(const std::vector<DMatch> &goodMatches) const { return goodMatches.size() >= 16; }
+bool FeatureMatcher::enoughMatchesForFundamentalMatrix(const std::vector<DMatch> &goodMatches) { return goodMatches.size() >= MIN_POINTS_FOR_FUNDAMENTAL; }
 
 int FeatureMatcher::getSceneGraph(std::vector<Image>& images) const {
     std::cout << "Constructing scene graph..." << std::endl;
@@ -104,7 +103,7 @@ int FeatureMatcher::getSceneGraph(std::vector<Image>& images) const {
 
     for (size_t i = 0; i < images.size() - 1; i++) {
         for (size_t j = i + 1; j < images.size(); j++) {
-            size_t matchCount = images[i].countMatchesByImage(j);
+            size_t matchCount = images[i].countMatchesWithImage(j);
 
             if (matchCount > MATCH_COUNT_THRESHOLD) {
                 graph << images[i].getName() << " -- " << images[j].getName() << std::endl;

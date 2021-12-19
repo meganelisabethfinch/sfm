@@ -8,7 +8,7 @@
 #include <opencv2/calib3d.hpp>
 
 
-int findHomographyInliers(Image &image1, Image &image2) {
+int SFMUtilities::findHomographyInliers(Image &image1, Image &image2) {
     std::vector<cv::DMatch> matches = image1.getMatchesByImage(image2.getId());
 
     std::vector<cv::Point2f> alignedLeft = image1.getMatchedPoints(image2.getId());
@@ -30,18 +30,4 @@ int findHomographyInliers(Image &image1, Image &image2) {
     }
 
     return countNonZero(inlierMask);
-}
-
-void getPointsFromMatches(std::vector<cv::KeyPoint>& leftKeyPoints,
-                          std::vector<cv::KeyPoint>& rightKeyPoints,
-                          std::vector<cv::DMatch>& matches,
-                          std::vector<cv::Point2f>& alignedLeft,
-                          std::vector<cv::Point2f>& alignedRight) {
-    alignedLeft.clear();
-    alignedRight.clear();
-
-    for (auto const& match : matches) {
-        alignedLeft.push_back(leftKeyPoints[match.queryIdx].pt);
-        alignedRight.push_back(rightKeyPoints[match.trainIdx].pt);
-    }
 }

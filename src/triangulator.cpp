@@ -6,68 +6,25 @@
 #include <point_cloud.hpp>
 #include <iostream>
 #include <fstream>
+#include <sfm_utilities.hpp>
+#include <data_structures.h>
 
 Triangulator::Triangulator() {
 
 }
 
 int Triangulator::reconstruct(std::vector<Image> &images) {
-    // Find pair of images with highest number of matches
-    ImageID baseline1 = 0;
-    ImageID baseline2 = 1;
-    int highestMatches = 0;
-    for (size_t i = 0; i < images.size() - 1; i++) {
-        for (size_t j = i + 1; j < images.size(); j++) {
-            if (images[i].countMatchesByImage(j) > highestMatches) {
-                baseline1 = i;
-                baseline2 = j;
-                highestMatches = images[i].countMatchesByImage(j);
-            }
-        }
-    }
-
-    // Compute baseline pose
-    compute_pose(images[baseline1], images[baseline2]);
-    triangulate(images[baseline1], images[baseline2]);
+    findBaselineTriangulation(images);
 
     /*
     for (int i = 2; i < images.size(); i++) {
-        compute_pose(images[i]);
+        computePose(images[i]);
         // then triangulate points
     }
     */
 
     // Output to file
     pointCloudToPly();
-
-    return 0;
-}
-
-int Triangulator::compute_pose(Image &image1, Image &image2) {
-    std::cout << "Registering images " << image1.getId() << " and " << image2.getId() << std::endl;
-    // For now, use 'ideal' camera matrix
-    cv::Mat K = cv::Mat::eye(3, 3, CV_32F);
-
-    // Compute essential matrix E
-    // E = transpose(K') * E * K
-    cv::Mat E = image1.getFundamentalMatrix(image2.getId());
-
-    // Recover pose R and t
-    cv::Mat R;
-    cv::Mat t;
-
-    std::vector<cv::Point2f> points1 = image1.getMatchedPoints(image2.getId());
-    std::vector<cv::Point2f> points2 = image2.getMatchedPoints(image1.getId());
-
-    recoverPose(E, points1, points2, K, R, t);
-
-    // Store matrices
-    image1.setPose(cv::Matx34f::eye());
-
-    cv::Matx34f M2 = cv::Matx34f(R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2), t.at<double>(0),
-                                 R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2), t.at<double>(1),
-                                 R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2), t.at<double>(2));
-    image2.setPose(M2);
 
     return 0;
 }
@@ -83,39 +40,41 @@ void Triangulator::triangulate(Image &image1, Image &image2) {
     // The query/train indices of these points are also needed, but only to update originating views
     std::vector<DMatch> matches1to2 = image1.getMatchesByImage(image2.getId());
 
-       Mat points3dHomogeneous;
+    Mat points3dHomogeneous;
 
-       std::vector<double> reprojectionError1;
-       std::vector<double> reprojectionError2;
+    std::vector<double> reprojectionError1;
+    std::vector<double> reprojectionError2;
 
-       cv::triangulatePoints(M1, M2, points1, points2, points3dHomogeneous);
+    cv::triangulatePoints(M1, M2, points1, points2, points3dHomogeneous);
 
-       Mat points3d;
-       cv::convertPointsFromHomogeneous(points3dHomogeneous.t(), points3d);
-       std::cout << points3d << std::endl;
+    Mat points3d;
+    cv::convertPointsFromHomogeneous(points3dHomogeneous.t(), points3d);
 
-       // TODO: use homogenous coords to check if point in front of camera
-       for (size_t i = 0; i < points3d.rows; i++) {
+    // TODO: use homogenous coords to check if point in front of camera
+    for (size_t i = 0; i < points3d.rows; i++) {
+        cv::Point3f point = cv::Point3f(points3d.at<float>(i,0),
+                                        points3d.at<float>(i,1),
+                                        points3d.at<float>(i,2));
+        double error1 = calculateReprojectionError(point, points1[i], M1);
+        double error2 = calculateReprojectionError(point, points2[i], M2);
 
-           // TODO if reprojection error above a certain amount, ignore this point
+        // Ignore points with high reprojection error
+        if (error1 > MAX_REPROJECTION_ERROR or error2 > MAX_REPROJECTION_ERROR) {
+            continue;
+        } else {
+            int pointIDX = pointCloud.addPoint(point);
 
-           int point = pointCloud.addPoint(points3d.at<float>(i,0),
-                                           points3d.at<float>(i,1),
-                                           points3d.at<float>(i,2));
-
-           // Store originating views of points
-           pointCloud.updateOriginatingViews(point, image1.getId(), matches1to2[i].queryIdx);
-           pointCloud.updateOriginatingViews(point, image2.getId(), matches1to2[i].trainIdx);
-
-           reprojectionError1.push_back(calculateReprojectionError(pointCloud.getPointByIndex(point), points1[i], M1));
-           reprojectionError2.push_back(calculateReprojectionError(pointCloud.getPointByIndex(point), points2[i], M2));
-       }
+            // Store originating views of points
+            pointCloud.updateOriginatingViews(pointIDX, image1.getId(), matches1to2[i].queryIdx);
+            pointCloud.updateOriginatingViews(pointIDX, image2.getId(), matches1to2[i].trainIdx);
+        }
+    }
 
    pointCloud.registerImage(image1.getId());
    pointCloud.registerImage(image2.getId());
 }
 
-int Triangulator::compute_pose(Image &image) {
+int Triangulator::computePose(Image &image) {
     std::vector<cv::Point3f> objectPoints;
     std::vector<cv::Point2f> imagePoints;
 
@@ -252,11 +211,106 @@ double Triangulator::calculateReprojectionError(Point3f &point3D, Point2f &point
     cv::Point2f rpEuclidean = cv::Point2f(rp.at<float>(0,0) / rp.at<float>(0,2),
             rp.at<float>(0,1) / rp.at<float>(0,2));
 
-
     std::cout << "----" << std::endl;
     std::cout << "Original 2D point: " << point2D << std::endl;
     std::cout << "Reprojected point: " << rpEuclidean << std::endl;
 
     double error = cv::norm(point2D - rpEuclidean);
     return error;
+}
+
+void Triangulator::findBaselineTriangulation(std::vector<Image> &images) {
+    std::cout << "Finding baseline triangulation..." << std::endl;
+
+    std::map<float, ImagePair> pairsByHomographyInlierRatio = sortForBestBaselinePair(images);
+
+    cv::Matx34f M1 = cv::Matx34f::eye();
+    cv::Matx34f M2 = cv::Matx34f::eye();
+
+    for (auto& pair : pairsByHomographyInlierRatio) {
+        std::cout << "Trying images " << pair.second.left << " and " << pair.second.right << " with ratio " << pair.first << std::endl;
+
+        ImageID i = pair.second.left;
+        ImageID j = pair.second.right;
+
+        std::vector<cv::DMatch> matches = images[i].getMatchesByImage(j);
+        std::vector<cv::DMatch> prunedMatches;
+        bool success = computePose(images[i], images[j], M1, M2, prunedMatches);
+
+        if (not success) {
+            // Could not confidently compute pose for these images
+            continue;
+        }
+
+        float ratioPoseInliers = ((float) prunedMatches.size()) / ((float) matches.size());
+
+        if (ratioPoseInliers < MIN_RATIO_POSE_INLIERS) {
+            // Not enough pose inliers. Skip.
+            continue;
+        }
+
+        images[i].setMatches(j, prunedMatches);
+        images[j].setMatches(i, prunedMatches, false);
+
+        images[i].setPose(M1);
+        images[j].setPose(M2);
+
+        triangulate(images[i], images[j]);
+        break;
+    }
+}
+
+std::map<float, ImagePair> Triangulator::sortForBestBaselinePair(std::vector<Image> &images) {
+    std::map<float, ImagePair> pairsByHomographyInlierRatio;
+
+    for (size_t i = 0; i < images.size() - 1; i++) {
+        for (size_t j = i + 1; j < images.size(); j++) {
+            int totalMatches = images[i].countMatchesWithImage(j);
+
+            if (totalMatches < MIN_POINTS_FOR_HOMOGRAPHY) {
+                // Not enough points to get good homography
+                continue;
+            }
+            int numInliers = SFMUtilities::findHomographyInliers(images[i], images[j]);
+            float ratioInliers = ((float) numInliers) / ((float) totalMatches);
+
+            pairsByHomographyInlierRatio[ratioInliers] = { i, j };
+        }
+    }
+
+    return pairsByHomographyInlierRatio;
+}
+
+bool Triangulator::computePose(Image &image1, Image &image2, Matx34f &M1, Matx34f &M2,
+                               std::vector<cv::DMatch> &prunedMatches) {
+    // For now, use 'ideal' camera matrix
+    cv::Mat K = cv::Mat::eye(3, 3, CV_32F);
+
+    // Compute essential matrix E
+    // E = transpose(K') * E * K
+    cv::Mat E = image1.getFundamentalMatrix(image2.getId());
+
+    // Recover pose R and t
+    cv::Mat R;
+    cv::Mat t;
+
+    std::vector<cv::Point2f> points1 = image1.getMatchedPoints(image2.getId());
+    std::vector<cv::Point2f> points2 = image2.getMatchedPoints(image1.getId());
+    Mat mask;
+
+    recoverPose(E, points1, points2, K, R, t, mask);
+
+    M1 = cv::Matx34f::eye();
+    M2 = cv::Matx34f(R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2), t.at<double>(0),
+                     R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2), t.at<double>(1),
+                     R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2), t.at<double>(2));
+
+    std::vector<cv::DMatch> matches = image1.getMatchesByImage(image2.getId());
+    prunedMatches.clear();
+    for (size_t i = 0; i < mask.rows; i++) {
+        if (mask.at<uchar>(i)) {
+            prunedMatches.push_back(matches[i]);
+        }
+    }
+    return true;
 }

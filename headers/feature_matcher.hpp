@@ -15,6 +15,6 @@ class FeatureMatcher {
 
         int getSceneGraph(std::vector<Image>& images) const;
 
-        bool enoughMatchesToFindMatrix(const std::vector<cv::DMatch> &goodMatches) const;
+        static bool enoughMatchesForFundamentalMatrix(const std::vector<cv::DMatch> &goodMatches) ;
 };
 #endif
