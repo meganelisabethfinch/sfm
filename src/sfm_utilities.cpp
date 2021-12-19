@@ -10,14 +10,10 @@
 
 int findHomographyInliers(Image &image1, Image &image2) {
     std::vector<cv::DMatch> matches = image1.getMatchesByImage(image2.getId());
-    std::vector<cv::Point2f> alignedLeft;
-    std::vector<cv::Point2f> alignedRight;
 
-    getPointsFromMatches(image1.getKeyPoints(),
-                         image2.getKeyPoints(),
-                         matches,
-                         alignedLeft,
-                         alignedRight);
+    std::vector<cv::Point2f> alignedLeft = image1.getMatchedPoints(image2.getId());
+    std::vector<cv::Point2f> alignedRight = image2.getMatchedPoints(image1.getId());
+
     cv::Mat inlierMask;
     cv::Mat H;
 

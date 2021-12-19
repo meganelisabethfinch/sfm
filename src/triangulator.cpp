@@ -6,7 +6,6 @@
 #include <point_cloud.hpp>
 #include <iostream>
 #include <fstream>
-#include <opencv2/sfm/triangulation.hpp>
 
 Triangulator::Triangulator() {
 
@@ -65,7 +64,7 @@ int Triangulator::compute_pose(Image &image1, Image &image2) {
     // Store matrices
     image1.setPose(cv::Matx34f::eye());
 
-    cv::Matx34f M2 = cv::Matx34f(R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2), t.at<double>(0),
+    cv::Matx34f M2 = cv::Matx34f(R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2), t.at<double>(0),
                                  R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2), t.at<double>(1),
                                  R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2), t.at<double>(2));
     image2.setPose(M2);
@@ -84,62 +83,25 @@ void Triangulator::triangulate(Image &image1, Image &image2) {
     // The query/train indices of these points are also needed, but only to update originating views
     std::vector<DMatch> matches1to2 = image1.getMatchesByImage(image2.getId());
 
-   if (USE_CV_SFM_TRIANGULATION) {
-       cv::Mat points3d;
-
-       cv::Mat points1Mat = cv::Mat_<float>(2, 0);
-       cv::Mat points2Mat = cv::Mat_<float>(2, 0);
-
-       for (const auto &point: points1) {
-           cv::Mat pointAsMatrix = (cv::Mat_<float>(2, 1) << point.x, point.y);
-           cv::hconcat(points1Mat, pointAsMatrix, points1Mat);
-       }
-
-       for (const auto &point: points2) {
-           cv::Mat pointAsMatrix = (cv::Mat_<float>(2, 1) << point.x, point.y);
-           cv::hconcat(points2Mat, pointAsMatrix, points2Mat);
-       }
-
-       std::vector<cv::Mat> points2d;
-       points2d.push_back(points1Mat);
-       points2d.push_back(points2Mat);
-
-       std::vector<cv::Mat> projectionMatrices;
-       // TODO: resolve compatibility issues between cv:: and cv::sfm
-       // it seems cv::sfm likes projection matrices as 3x4 Mat_<double>
-       // whereas cv:: likes projection matrices to be Matx34f (float)
-       // projectionMatrices.push_back(M1);
-       // projectionMatrices.push_back(M2);
-
-       cv::sfm::triangulatePoints(points2d, projectionMatrices, points3d);
+       Mat points3dHomogeneous;
 
        std::vector<double> reprojectionError1;
        std::vector<double> reprojectionError2;
 
-       for (int i = 0; i < points3d.cols; i++) {
-           size_t point = pointCloud.addPoint(points3d.at<float>(0, i),
-                   points3d.at<float>(1, i),
-                   points3d.at<float>(2, i));
+       cv::triangulatePoints(M1, M2, points1, points2, points3dHomogeneous);
 
-           reprojectionError1.push_back(calculateReprojectionError(pointCloud.getPointByIndex(point), points1[i], M1));
-           reprojectionError2.push_back(calculateReprojectionError(pointCloud.getPointByIndex(point), points2[i], M2));
-
-           pointCloud.updateOriginatingViews(point, image1.getId(), matches1to2[i].queryIdx);
-           pointCloud.updateOriginatingViews(point, image2.getId(), matches1to2[i].trainIdx);
-       }
-   } else {
-       Mat points4D;
-
-       std::vector<double> reprojectionError1;
-       std::vector<double> reprojectionError2;
-
-       triangulatePoints(M1, M2, points1, points2, points4D);
+       Mat points3d;
+       cv::convertPointsFromHomogeneous(points3dHomogeneous.t(), points3d);
+       std::cout << points3d << std::endl;
 
        // TODO: use homogenous coords to check if point in front of camera
-       for (int i = 0; i < points4D.cols; i++) {
+       for (size_t i = 0; i < points3d.rows; i++) {
 
-           int point = pointCloud.addPoint(points4D.at<float>(0, i), points4D.at<float>(1, i),
-                             points4D.at<float>(2, i), points4D.at<float>(3, i));
+           // TODO if reprojection error above a certain amount, ignore this point
+
+           int point = pointCloud.addPoint(points3d.at<float>(i,0),
+                                           points3d.at<float>(i,1),
+                                           points3d.at<float>(i,2));
 
            // Store originating views of points
            pointCloud.updateOriginatingViews(point, image1.getId(), matches1to2[i].queryIdx);
@@ -148,7 +110,6 @@ void Triangulator::triangulate(Image &image1, Image &image2) {
            reprojectionError1.push_back(calculateReprojectionError(pointCloud.getPointByIndex(point), points1[i], M1));
            reprojectionError2.push_back(calculateReprojectionError(pointCloud.getPointByIndex(point), points2[i], M2));
        }
-   }
 
    pointCloud.registerImage(image1.getId());
    pointCloud.registerImage(image2.getId());

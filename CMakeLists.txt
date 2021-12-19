@@ -4,7 +4,6 @@ project(sfm)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(OPENCV_EXTRA_MODULES_PATH /Users/meganfinch/opencv_contrib/modules/sfm)
 
 # Detect clang. Not officially reported by cmake.
 execute_process(COMMAND "${CMAKE_CXX_COMPILER}" "-v" ERROR_VARIABLE CXX_VER_STDERR)
@@ -70,7 +69,7 @@ target_include_directories(
         /Users/meganfinch/opencv-4.5.3/modules/flann/include
         /Users/meganfinch/opencv-4.5.3/modules/imgcodecs/include
         /Users/meganfinch/opencv-4.5.3/modules/videoio/include
-        /Users/meganfinch/opencv_contrib/modules/sfm/include
+        # /Users/meganfinch/opencv_contrib/modules/sfm/include
 )
 
 set(CMAKE_CXX_FLAGS_DEBUG "-g")

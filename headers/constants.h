@@ -12,6 +12,8 @@ const int MATCH_COUNT_THRESHOLD = 25;
 
 const double RANSAC_THRESHOLD = 10.0; // RANSAC inlier threshold
 
+const float MAX_REPROJECTION_ERROR = 10.0f; // Maximum 10-pixel allowed re-projection error
+
 const bool DEBUG_MODE = true;
 
 const bool USE_CV_SFM_TRIANGULATION = false;
