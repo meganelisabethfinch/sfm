@@ -40,6 +40,13 @@ else()
 endif ()
 message(" ")
 
+
+# If defined, use SIFT for feature detection; otherwise use ORB
+add_definitions(-DUSE_SIFT)
+
+# If define, use FLANNBASED for feature matching, otherwise use brute-force
+#add_definitions(-DUSE_FLANN_BASED)
+
 # Create sfm executable target
 add_executable(
         sfm
