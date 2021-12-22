@@ -212,6 +212,7 @@ double Triangulator::calculateReprojectionError(Point3f &point3D, Point2f &point
             rp.at<float>(0,1) / rp.at<float>(0,2));
 
     std::cout << "----" << std::endl;
+    std::cout << "3D point: " << point3D << std::endl;
     std::cout << "Original 2D point: " << point2D << std::endl;
     std::cout << "Reprojected point: " << rpEuclidean << std::endl;
 
@@ -252,6 +253,7 @@ void Triangulator::findBaselineTriangulation(std::vector<Image> &images) {
         images[i].setMatches(j, prunedMatches);
         images[j].setMatches(i, prunedMatches, false);
 
+        std::cout << M1 << std::endl;
         images[i].setPose(M1);
         images[j].setPose(M2);
 
@@ -283,22 +285,27 @@ std::map<float, ImagePair> Triangulator::sortForBestBaselinePair(std::vector<Ima
 
 bool Triangulator::computePose(Image &image1, Image &image2, Matx34f &M1, Matx34f &M2,
                                std::vector<cv::DMatch> &prunedMatches) {
-    // For now, use 'ideal' camera matrix
-    cv::Mat K = cv::Mat::eye(3, 3, CV_32F);
 
-    // Compute essential matrix E
-    // E = transpose(K') * E * K
-    cv::Mat E = image1.getFundamentalMatrix(image2.getId());
+    std::vector<cv::Point2f> points1 = image1.getMatchedPoints(image2.getId());
+    std::vector<cv::Point2f> points2 = image2.getMatchedPoints(image1.getId());
+
+    cv::Mat F = image1.getFundamentalMatrix(image2.getId());
+    cv::Mat K1;
+    image1.getCameraMatrix().convertTo(K1, CV_64F);
+    cv::Mat K2;
+    image2.getCameraMatrix().convertTo(K2, CV_64F);
+    cv::Mat E = K2.t() * F * K1;
+
+    // Assumes image1 and image2 have the same camera matrix
+    // cv::Mat E = cv::findEssentialMat(points1, points2, K1, cv::RANSAC, 0.99, 1.0, 1000, noArray());
 
     // Recover pose R and t
     cv::Mat R;
     cv::Mat t;
-
-    std::vector<cv::Point2f> points1 = image1.getMatchedPoints(image2.getId());
-    std::vector<cv::Point2f> points2 = image2.getMatchedPoints(image1.getId());
     Mat mask;
 
-    recoverPose(E, points1, points2, K, R, t, mask);
+    // cv::recoverPose(points1, points2, K1, distCoeffs1, K2, distCoeffs2, E, R, t, RANSAC, 0.99, 1.0, mask);
+    recoverPose(E, points1, points2, K1, R, t, mask);
 
     M1 = cv::Matx34f::eye();
     M2 = cv::Matx34f(R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2), t.at<double>(0),

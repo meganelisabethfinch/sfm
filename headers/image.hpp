@@ -24,12 +24,17 @@ class Image {
 
         std::map<ImageID, cv::Mat> fundamentalMatrices;
         cv::Matx34f pose;
+        cv::Mat intrinsic;
 
 public:
         Image(int id, std::string name, cv::Mat img) {
             this->id = id;
             this->name = name;
             this->img = img;
+            this->intrinsic = (cv::Mat_<float>(3,3) <<
+                    500.f,    0.f, img.cols / 2.f,
+                      0.f,  500.f, img.rows / 2.f,
+                      0.f,    0.f,            1.f);
         }
 
         int getId() const {
@@ -121,6 +126,10 @@ public:
 
         cv::Matx34f& getPose() {
             return pose;
+        }
+
+        cv::Mat& getCameraMatrix() {
+            return intrinsic;
         }
 
         /**
